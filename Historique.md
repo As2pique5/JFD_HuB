@@ -1,5 +1,20 @@
 # Historique du Projet JFD'HuB
 
+## 13 Mars 2025
+- Migration vers une solution 100% locale :
+  - Création des services frontend pour communiquer avec l'API locale
+  - Développement d'un service API central (`api.ts`) pour gérer tous les appels à l'API
+  - Adaptation du contexte d'authentification (`LocalAuthContext.tsx`) pour utiliser l'API locale
+  - Création d'un service famille local (`localFamilyService.ts`) comme modèle pour les autres services
+  - Préparation de la structure pour remplacer progressivement tous les services Supabase
+
+- Décision stratégique concernant les tests de l'API :
+  - Constatation de difficultés importantes avec l'implémentation des tests unitaires pour l'API
+  - Création d'une nouvelle branche `migration-locale` à partir de `master` pour continuer le développement sans être bloqués par les tests
+  - Mise en pause temporaire de la branche `api-testing` pour se concentrer sur l'avancement du projet
+  - Priorisation de la fonctionnalité sur les tests pour accélérer le développement
+  - Plan de retour aux tests une fois les fonctionnalités principales implémentées
+
 ## 20 Mars 2025
 - Correction des erreurs de typage et finalisation de l'API backend :
   - Correction des erreurs d'importation dans les fichiers middleware
