@@ -1,5 +1,14 @@
 # Historique du Projet JFD'HuB
 
+## 15 Mars 2025
+- Développement de l'API pour la gestion des projets familiaux :
+  - Création du modèle pour les projets, les phases, les participants, les contributions et les assignations
+  - Implémentation du contrôleur avec toutes les opérations CRUD pour chaque entité
+  - Configuration des routes API avec les autorisations appropriées
+  - Intégration du système d'audit pour suivre les actions liées aux projets
+  - Mise à jour du fichier principal de l'application pour inclure les nouvelles routes
+  - Correction des erreurs de typage dans les routes en utilisant des fonctions wrapper pour convertir les méthodes du contrôleur en gestionnaires de requêtes Express
+
 ## 14 Mars 2025
 - Développement de l'API pour la gestion des événements familiaux :
   - Création du modèle pour les événements, les participants, les contributions et les assignations
