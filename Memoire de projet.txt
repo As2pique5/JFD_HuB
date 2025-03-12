@@ -1,0 +1,410 @@
+Mémoire de projet : JFD’HuB
+
+1. Introduction
+
+JFD’HuB est une application web destinée à centraliser la gestion des informations et
+activités d’une famille :
+
+•  Membres
+
+•  Cotisations
+
+•  Projets
+
+•  Événements
+
+•  Messagerie
+
+•  Documentation
+
+•  Arbre généalogique
+
+La devise de base est le Franc CFA d’Afrique Centrale (XAF). L’objectif est de permettre
+une organisation fluide, sécurisée et accessible à tous les membres de la famille, avec
+différents niveaux de droit (Super Admin, Intermédiaire, Standard).
+
+2. Principes Directeurs
+
+1. Modularité
+
+o Chaque fonctionnalité (authentification, cotisations, projets, etc.) est conçue
+comme un module autonome.
+
+o Des tests unitaires valident chaque module individuellement.
+
+o La documentation technique de chaque module est maintenue à jour.
+
+2. Sécurité
+
+o Validation stricte des données en entrée.
+
+o Suivi des logs d’activité pour tracer les opérations critiques.
+
+o Sauvegarde régulière et chiffrement des données sensibles (mots de passe,
+informations personnelles, etc.).
+
+3. Maintenabilité
+
+o Code commenté et architecture cohérente.
+
+o Conventions de nommage strictes (front-end, back-end, bases de données).
+
+o Documentation actualisée à chaque itération.
+
+4. Performance
+
+o Chargement et requêtes optimisés.
+
+o Mise en cache des données les plus fréquemment sollicitées.
+
+o Pagination pour éviter l’affichage massif de données (membres, transactions).
+
+o Tests de performance à chaque phase critique du projet.
+
+5. Validation par phase
+
+o Chaque phase d’implémentation doit être validée avant de passer à la suivante.
+
+o Validation = tests fonctionnels, retours des utilisateurs cibles, documentation à
+jour et revue de code.
+
+
+3. Architecture et Technologies
+
+3.1 Stack Technique
+
+•  Selon la plateforme utilisée
+
+3.2 Organisation du Code
+
+•  Monorepo (NX, Turborepo, ou similaire) ou structure multi-dépôts si besoin.
+
+•  Services : un service par grande fonctionnalité (auth, finance, projets, média,
+généalogie).
+
+•  Refactorisation : tout code jugé trop long ou dupliqué doit être refactorisé avant mise
+en                                         production, puis retesté.
+
+3.3 Séparation des Environnements
+
+•  Développement : base de données de test, environnements de staging.
+
+•  Production : base de données finale, configuration sécurisée.
+
+4. Rôles et Accès
+
+L’application comporte trois niveaux d’utilisateurs avec des permissions distinctes :
+
+1. Super Administrateur
+
+o Accès à l’ensemble des fonctionnalités (lecture, création, modification,
+suppression).
+
+o Gestion des rôles, des autorisations et des invitations.
+
+o Réinitialisation manuelle des mots de passe.
+
+2. Membre Intermédiaire
+
+o Peut créer et modifier des ressources (cotisations, projets, événements) mais
+pas les supprimer.
+
+o Participe activement à l’organisation familiale.
+
+3. Membre Standard
+
+o Accès en lecture seule à la plupart des informations.
+
+o Peut modifier uniquement son propre profil.
+
+o Participe aux cotisations et aux projets si désigné par l’administrateur.
+
+Authentification et Gestion des Comptes
+
+•  L’accès à l’application est restreint aux seuls membres créés par le Super Admin (pas
+de formulaire d’inscription public).
+
+•  Pas de récupération de mot de passe automatisée : seul l’administrateur peut
+réinitialiser un mot de passe en cas d’oubli.
+
+
+5. Design Global
+
+•  Identité Visuelle : couleurs sobres avec légers dégradés, effets d’ombres et de
+profondeur.
+
+•  Mode Clair/Sombre : bascule automatique ou manuelle dans les préférences
+utilisateurs.
+
+•  Layout Responsive : menu latéral masquable, header fixe avec accès aux notifications
+et profil.
+
+•  Animations Douces : transitions soignées sur les boutons et les menus.
+
+•  Typographie Lisible : hiérarchie claire (titres, sous-titres, paragraphes).
+
+6. Plan d’Implémentation
+
+7. Détails sur les Systèmes de Cotisation
+
+7.1 Types de Cotisations
+
+1. Cotisation Mensuelle
+
+o Gérée par « sessions » (ex. Session 2024, Session 2025).
+
+o Chaque session a un montant global mensuel à atteindre.
+
+o Les contributeurs reçoivent un montant individuel, la somme doit égaler le
+montant global.
+
+o Date limite de paiement mensuel : généralement le 10 du mois (paramétrable).
+
+o Suivi mensuel des versements, indication des retards.
+
+2. Cotisation Événement
+
+o Ponctuelle, liée à un événement (ex. mariage, funérailles).
+
+o Montant global à atteindre + date limite.
+
+o Attribution personnalisée aux membres contributeurs (montants individuels).
+
+o Possibilité de payer en plusieurs fois jusqu’à la date limite.
+
+o Historique complet des versements.
+
+3. Cotisation Projet
+
+o Montant total à collecter, réparti sur un nombre fixe de mois (ex. 5 mois).
+
+o Chaque participant a un montant total qui est divisé en mensualités.
+
+o Une « date de début » et une durée pour déterminer la « date limite ».
+
+o Suivi des versements échelonnés, affichage des retards.
+
+7.2 Fonctionnement Général
+
+•  Page Principale des Cotisations (/contributions)
+
+o Vue d’ensemble (stats globales, total des cotisations, répartition par type).
+
+o Graphiques (ex. Recharts) montrant la contribution de chaque membre.
+
+•  Cotisations Mensuelles (/contributions/monthly)
+
+o Système de sessions annuelles.
+
+o Formulaire de création de session (année, montant global mensuel, description,
+durée, etc.).
+
+o Sélection des contributeurs et attribution des montants individuels.
+
+
+o Suivi mensuel via un sélecteur de mois.
+
+o Détection des retards (après le jour limite défini).
+
+•  Cotisations Événements (/contributions/events)
+
+o Liste des événements.
+
+o Création d’un événement (montant cible, date limite).
+
+o Attribution des montants par participant.
+
+o Historique des paiements et suivi des restants dus.
+
+•  Cotisations Projets (/contributions/projects)
+
+o Liste des projets avec leurs cotisations associées.
+
+o Création de projets (montant total, durée, date de début).
+
+o Répartition mensuelle pour chaque contributeur.
+
+o Suivi des paiements mensuels et calcul automatique des échéances.
+
+7.3 Structure de Base de Données
+
+Principales tables (à titre indicatif) :
+
+•  monthly_contribution_sessions
+
+o id, year, monthly_target_amount, status, payment_deadline, ...
+
+•  monthly_contribution_assignments
+
+o id, session_id, user_id, monthly_amount, ...
+
+•  contributions
+
+o id, user_id, amount, payment_date, payment_period_start,
+payment_period_end, status, session_id, is_late, ...
+
+•  event_contribution_assignments
+
+o id, event_id, user_id, target_amount, current_amount, deadline, ...
+
+•  project_contribution_assignments
+
+o id, project_id, user_id, target_amount, current_amount,
+monthly_target_amount, deadline, ...
+
+7.4 Logique Métier Importante
+
+•  Calcul des retards :
+
+o Un paiement est considéré en retard s’il est effectué après le jour limite (par
+défaut le 10) pour les cotisations mensuelles.
+
+o Pour les projets, les échéances mensuelles sont calculées à partir de la date
+d’activation.
+
+•  Validation des montants :
+
+o Pour les sessions mensuelles : la somme des montants affectés doit être égale
+au montant global mensuel cible.
+
+o Pour les événements : la somme des paiements ne doit pas dépasser le montant
+cible.
+
+o Pour les projets : on vérifie le respect du nombre d’échéances et des montants
+mensuels.
+
+•  Gestion des dates :
+
+o Utilisation d’un date-picker (react-day-picker, date-fns) avec locale française.
+
+o Invalidation des dates futures ou trop anciennes selon le contexte.
+
+o Synchronisation des paiements avec la session ou le projet en cours.
+
+•  Intégration Trésorerie :
+
+
+o Création automatique de transactions dans la table treasury_transactions
+
+(si existante).
+
+o Mise à jour du solde en temps réel.
+
+8. Autres Fonctionnalités Clés
+
+1. Arbre Généalogique Interactif
+
+o Visualisation dynamique (parents, enfants, fratries).
+
+o Possibilité d’ajouter/modifier des membres et leurs liens, sous contrôle du
+Super Admin ou des Intermédiaires.
+
+2. Messagerie Interne
+
+o Canaux privés ou de groupe.
+
+o Système d’alertes en temps réel (signalement de nouveau message, push
+notifications si nécessaire).
+
+3. Organisation des Événements
+
+o Calendrier familial unifié (fêtes, anniversaires, réunions).
+
+o Participation sélective et rappels automatiques.
+
+o Suivi de présence et compte-rendu post-événement.
+
+4. Gestion de la Documentation
+
+o Stockage centralisé (PDF, images, vidéos).
+
+o Classement en catégories, limitation d’accès selon les rôles.
+
+o Versionning et historique d’accès.
+
+5. Tableau de Bord Familial
+
+o Vue d’ensemble : dernières actualités, cotisations à payer, événements à venir.
+
+o Statistiques personnalisées : avancement des projets, ratio de paiement.
+
+6. Préférences Utilisateur
+
+o Personnalisation du thème (clair/sombre).
+
+o Choix des notifications reçues.
+
+6. Sécurité et Permissions
+
+1. Hiérarchie des Permissions
+
+o Les droits du Super Admin couvrent toutes les fonctionnalités.
+
+o Les Membres Intermédiaires peuvent créer/éditer (mais pas supprimer).
+
+o Les Membres Standard ne peuvent modifier que leur propre profil.
+
+2. Opérations Critiques
+
+o Seul le Super Admin peut supprimer membres, cotisations, projets,
+événements.
+
+o Seul le Super Admin peut réinitialiser un mot de passe.
+
+3. Audit Logs
+
+o Chaque opération sensible (création, suppression, modification) doit être
+tracée.
+
+4. Pas de Récupération Automatisée
+
+o En cas d’oubli de mot de passe, l’utilisateur doit s’adresser au Super Admin.
+
+
+10. Front-End : Composants et Interfaces
+
+1. Composants UI Réutilisables
+
+o ContributionCard, ContributionChart, ContributionNavigation,
+ContributionFilters.
+
+o Formulaires (réutilisation de champs, validation).
+
+o Popups de confirmation pour toute opération critique.
+
+2. Gestion des Dates et Calendriers
+
+o Composant Calendar (shadcn/ui ou autre), configuré en français.
+
+o Format de date unifié (date-fns ou dayjs) pour tout le front-end.
+
+o Filtrages contextuels (période mensuelle, date limite d’un événement, etc.).
+
+3. Responsivité et Accessibilité
+
+o Tests sur différents breakpoints (mobile, tablette, desktop).
+
+o Respect des normes d’accessibilité (ARIA).
+
+11. Tests s Validation
+
+1. Tests Unitaires
+
+o Sur chaque module (auth, cotisations, projets, etc.).
+
+o Vérification des règles métier (calcul de retards, cumul des montants, etc.).
+
+2. Tests d’Intégration
+
+o Vérifier la communication front <-> base de données
+
+o Valider l’enchaînement des étapes (ex. création d’une session, attribution des
+montants, enregistrement des paiements).
+
+3. Tests de Performance
+
+o Temps de réponse de l’API, fluidité du front.
+
+o Mise en cache et pagination sur les vues volumineuses (liste de membres,
+historiques de paiements, etc.).
+

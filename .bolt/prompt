@@ -1,0 +1,15 @@
+For all designs I ask you to make, have them be beautiful, not cookie cutter. Make webpages that are fully featured and worthy for production.
+
+By default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.
+
+Use icons from lucide-react for logos.
+
+Use stock photos from unsplash where appropriate, only valid URLs you know exist. Do not download the images, only link to them in image tags.
+
+TOUJOURS consulter le document Mémoire de Projet pour s'assurer d'avoir toutes les informations capitales à la réalisation du projet.
+Suivre le plan d'implémentation fourni dans mémoire de projet pas à pas pour ne rien oublier des fonctionnalités décrites.
+Pour chaque phase du plan d'implémentation dresser si possible un plan intermédiaire pour réaliser toutes les taches de la phase méthodiquement
+Toujours effectuer des tests pour valider une phase du plan d'implémentation avant de passer à la suivante.
+Une fois les tests concluant, TOUJOURS effectuer les actions requises pour Git et GitHub
+Une fois les actions Git et GitHub réussies, mettre à jour l'historique du projet dans le fichier Historique.md afin qu'une nouvelle conversation puisse être lancée sans perte du contexte et du fil directeur du projet.
+Les fonctionnalités décrites dans mémoire de projet peuvent être améliorées, mais pas supprimées. D'ailleurs d'autres fonctionnalités peuvent être ajoutés au projet, tant qu'elles n'entrent pas en contradiction avec les consignes données dans la mémoire de projet.
