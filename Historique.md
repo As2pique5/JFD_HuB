@@ -1,6 +1,19 @@
 # Historique du Projet JFD'HuB
 
 ## 13 Mars 2025
+- Migration complète des données de Supabase vers PostgreSQL local :
+  - Configuration des variables d'environnement Supabase
+  - Exécution du script de migration des données
+  - Migration réussie des utilisateurs et autres données de l'application
+
+- Configuration du dépôt Git et initialisation de la base de données :
+  - Initialisation du dépôt Git local avec la branche master
+  - Configuration du dépôt distant sur GitHub
+  - Création du premier commit avec l'ensemble du code existant
+  - Exécution du script d'initialisation de la base de données PostgreSQL locale
+  - Création d'un script de migration des données de Supabase vers PostgreSQL local
+  - Ajout des dépendances nécessaires pour la migration
+
 - Correction des erreurs TypeScript dans l'API backend :
   - Modification des signatures de méthodes dans `authController.ts` pour retourner `Promise<Response>` au lieu de `Promise<void>`
   - Correction de la méthode de suppression d'utilisateur dans `userRoutes.ts` en utilisant `delete` au lieu de `remove`
