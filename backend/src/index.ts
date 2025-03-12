@@ -11,6 +11,7 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import monthlyContributionRoutes from './routes/monthlyContributionRoutes';
 import eventRoutes from './routes/eventRoutes';
+import projectRoutes from './routes/projectRoutes';
 
 // Chargement des variables d'environnement
 dotenv.config();
@@ -53,6 +54,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/monthly-contributions', monthlyContributionRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Gestion des erreurs
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
