@@ -7,6 +7,18 @@
   - Adaptation du contexte d'authentification (`LocalAuthContext.tsx`) pour utiliser l'API locale
   - Création d'un service famille local (`localFamilyService.ts`) comme modèle pour les autres services
   - Préparation de la structure pour remplacer progressivement tous les services Supabase
+  - Installation d'axios pour les requêtes HTTP vers l'API locale
+  - Correction des erreurs de typage dans les nouveaux services
+  - Sauvegarde des changements sur GitHub (branche `migration-locale`)
+
+- Plan pour la suite de la migration :
+  - Adapter les autres services (contributions, événements, projets, etc.) en suivant le modèle établi
+  - Mettre à jour les composants React pour utiliser les nouveaux services locaux
+  - Remplacer le contexte d'authentification Supabase par le contexte local
+  - Tester l'application pour s'assurer que tout fonctionne correctement avec l'API locale
+  - Nettoyer le code en supprimant les références à Supabase
+  - Approche progressive : migrer un service à la fois et tester chaque migration
+  - Gestion des variables d'environnement via fichier .env pour configurer l'URL de l'API
 
 - Décision stratégique concernant les tests de l'API :
   - Constatation de difficultés importantes avec l'implémentation des tests unitaires pour l'API
