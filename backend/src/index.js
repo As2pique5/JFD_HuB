@@ -15,6 +15,11 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const monthlyContributionRoutes_1 = __importDefault(require("./routes/monthlyContributionRoutes"));
 const eventRoutes_1 = __importDefault(require("./routes/eventRoutes"));
+const projectRoutes_1 = __importDefault(require("./routes/projectRoutes"));
+const documentRoutes_1 = __importDefault(require("./routes/documentRoutes"));
+const contributionRoutes_1 = __importDefault(require("./routes/contributionRoutes"));
+const messageRoutes_1 = __importDefault(require("./routes/messageRoutes"));
+const familyRoutes_1 = __importDefault(require("./routes/familyRoutes"));
 // Chargement des variables d'environnement
 dotenv_1.default.config();
 // Création de l'application Express
@@ -33,6 +38,22 @@ const uploadDir = process.env.UPLOAD_DIR || 'uploads';
 if (!fs_1.default.existsSync(path_1.default.join(__dirname, '..', uploadDir))) {
     fs_1.default.mkdirSync(path_1.default.join(__dirname, '..', uploadDir), { recursive: true });
 }
+// Création du dossier temporaire pour les uploads
+if (!fs_1.default.existsSync(path_1.default.join(__dirname, '..', uploadDir, 'temp'))) {
+    fs_1.default.mkdirSync(path_1.default.join(__dirname, '..', uploadDir, 'temp'), { recursive: true });
+}
+// Création du dossier pour les reçus de paiement
+if (!fs_1.default.existsSync(path_1.default.join(__dirname, '..', uploadDir, 'receipts'))) {
+    fs_1.default.mkdirSync(path_1.default.join(__dirname, '..', uploadDir, 'receipts'), { recursive: true });
+}
+// Création du dossier pour les pièces jointes des messages
+if (!fs_1.default.existsSync(path_1.default.join(__dirname, '..', uploadDir, 'attachments'))) {
+    fs_1.default.mkdirSync(path_1.default.join(__dirname, '..', uploadDir, 'attachments'), { recursive: true });
+}
+// Création du dossier pour les photos des membres de la famille
+if (!fs_1.default.existsSync(path_1.default.join(__dirname, '..', uploadDir, 'family_photos'))) {
+    fs_1.default.mkdirSync(path_1.default.join(__dirname, '..', uploadDir, 'family_photos'), { recursive: true });
+}
 // Création du dossier logs s'il n'existe pas
 if (!fs_1.default.existsSync(path_1.default.join(__dirname, '../logs'))) {
     fs_1.default.mkdirSync(path_1.default.join(__dirname, '../logs'), { recursive: true });
@@ -46,6 +67,11 @@ app.use('/api/auth', authRoutes_1.default);
 app.use('/api/users', userRoutes_1.default);
 app.use('/api/monthly-contributions', monthlyContributionRoutes_1.default);
 app.use('/api/events', eventRoutes_1.default);
+app.use('/api/projects', projectRoutes_1.default);
+app.use('/api/documents', documentRoutes_1.default);
+app.use('/api/contributions', contributionRoutes_1.default);
+app.use('/api/messages', messageRoutes_1.default);
+app.use('/api/family', familyRoutes_1.default);
 // Gestion des erreurs
 app.use((err, req, res, next) => {
     console.error(err.stack);

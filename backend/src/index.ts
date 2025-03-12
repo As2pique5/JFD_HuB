@@ -12,6 +12,10 @@ import userRoutes from './routes/userRoutes';
 import monthlyContributionRoutes from './routes/monthlyContributionRoutes';
 import eventRoutes from './routes/eventRoutes';
 import projectRoutes from './routes/projectRoutes';
+import documentRoutes from './routes/documentRoutes';
+import contributionRoutes from './routes/contributionRoutes';
+import messageRoutes from './routes/messageRoutes';
+import familyRoutes from './routes/familyRoutes';
 
 // Chargement des variables d'environnement
 dotenv.config();
@@ -39,6 +43,26 @@ if (!fs.existsSync(path.join(__dirname, '..', uploadDir))) {
   fs.mkdirSync(path.join(__dirname, '..', uploadDir), { recursive: true });
 }
 
+// Création du dossier temporaire pour les uploads
+if (!fs.existsSync(path.join(__dirname, '..', uploadDir, 'temp'))) {
+  fs.mkdirSync(path.join(__dirname, '..', uploadDir, 'temp'), { recursive: true });
+}
+
+// Création du dossier pour les reçus de paiement
+if (!fs.existsSync(path.join(__dirname, '..', uploadDir, 'receipts'))) {
+  fs.mkdirSync(path.join(__dirname, '..', uploadDir, 'receipts'), { recursive: true });
+}
+
+// Création du dossier pour les pièces jointes des messages
+if (!fs.existsSync(path.join(__dirname, '..', uploadDir, 'attachments'))) {
+  fs.mkdirSync(path.join(__dirname, '..', uploadDir, 'attachments'), { recursive: true });
+}
+
+// Création du dossier pour les photos des membres de la famille
+if (!fs.existsSync(path.join(__dirname, '..', uploadDir, 'family_photos'))) {
+  fs.mkdirSync(path.join(__dirname, '..', uploadDir, 'family_photos'), { recursive: true });
+}
+
 // Création du dossier logs s'il n'existe pas
 if (!fs.existsSync(path.join(__dirname, '../logs'))) {
   fs.mkdirSync(path.join(__dirname, '../logs'), { recursive: true });
@@ -55,6 +79,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/monthly-contributions', monthlyContributionRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/contributions', contributionRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/family', familyRoutes);
 
 // Gestion des erreurs
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

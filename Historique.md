@@ -1,5 +1,66 @@
 # Historique du Projet JFD'HuB
 
+## 20 Mars 2025
+- Correction des erreurs de typage et finalisation de l'API backend :
+  - Correction des erreurs d'importation dans les fichiers middleware
+  - Création de fichiers de définition de type (d.ts) pour les modules manquants
+  - Mise à jour de la configuration TypeScript pour inclure les types personnalisés
+  - Compilation réussie du projet sans erreurs de typage
+  - Préparation pour la phase de tests de l'API
+  - Création d'une nouvelle branche Git pour les tests
+  - Sauvegarde de l'état actuel du projet sur GitHub
+
+## 19 Mars 2025
+- Développement de l'API pour la gestion de l'arbre généalogique :
+  - Création du modèle `familyModel.ts` pour gérer les membres de la famille et leurs relations
+  - Implémentation de fonctionnalités pour la gestion des différents types de relations familiales (parent/enfant, fratrie, conjoint)
+  - Ajout de méthodes pour la visualisation de l'arbre généalogique complet ou centré sur un membre spécifique
+  - Développement du contrôleur avec toutes les opérations CRUD pour les membres et les relations
+  - Gestion des photos des membres de la famille avec téléversement et téléchargement
+  - Configuration des routes API avec les autorisations appropriées basées sur les rôles
+  - Intégration du système d'audit pour suivre toutes les actions liées à l'arbre généalogique
+  - Mise en place des middlewares d'authentification et d'autorisation
+  - Création des utilitaires pour améliorer la gestion des routes Express avec TypeScript
+  - Mise à jour du fichier principal de l'application pour inclure les nouvelles routes
+  - Création d'un dossier spécifique pour les photos des membres de la famille
+
+## 18 Mars 2025
+- Développement de l'API pour le système de messagerie interne :
+  - Création du modèle `messageModel.ts` pour gérer les messages, les destinataires et les pièces jointes
+  - Implémentation de fonctionnalités complètes pour la gestion des messages (envoi, réception, suppression, restauration)
+  - Ajout de méthodes pour la gestion des fils de discussion et la recherche de messages
+  - Implémentation du contrôleur avec toutes les opérations CRUD pour les messages
+  - Gestion des pièces jointes avec téléchargement et téléchargement de fichiers
+  - Configuration des routes API avec les autorisations appropriées basées sur les rôles
+  - Intégration du système d'audit pour suivre toutes les actions liées aux messages
+  - Mise à jour du fichier principal de l'application pour inclure les nouvelles routes
+  - Création d'un dossier spécifique pour les pièces jointes des messages
+  - Correction des erreurs de typage dans les modèles et les contrôleurs
+
+## 17 Mars 2025
+- Développement de l'API pour la gestion centralisée des contributions financières :
+  - Création du modèle `contributionModel.ts` pour centraliser toutes les transactions financières
+  - Implémentation de fonctionnalités avancées pour les rapports financiers et les statistiques
+  - Ajout de méthodes pour obtenir des résumés financiers globaux, mensuels et annuels
+  - Implémentation du contrôleur avec toutes les opérations CRUD pour les contributions
+  - Gestion des reçus de paiement avec téléchargement et téléchargement de fichiers
+  - Configuration des routes API avec les autorisations appropriées basées sur les rôles
+  - Intégration du système d'audit pour suivre toutes les transactions financières
+  - Mise à jour du fichier principal de l'application pour inclure les nouvelles routes
+  - Création d'un dossier spécifique pour les reçus de paiement
+  - Correction des erreurs de typage dans les modèles et les contrôleurs
+
+## 16 Mars 2025
+- Développement de l'API pour la gestion des documents et des catégories de documents :
+  - Création du modèle pour les documents et les catégories de documents dans `documentModel.ts`
+  - Implémentation du contrôleur avec toutes les opérations CRUD pour les documents et les catégories
+  - Ajout de fonctionnalités pour le téléchargement et le téléchargement de fichiers
+  - Configuration des routes API avec les autorisations appropriées et gestion des fichiers avec multer
+  - Intégration du système d'audit pour suivre les actions liées aux documents
+  - Mise à jour du fichier principal de l'application pour inclure les nouvelles routes
+  - Création d'un dossier temporaire pour les uploads de fichiers
+  - Correction des erreurs de typage dans les modèles et les contrôleurs
+
 ## 15 Mars 2025
 - Développement de l'API pour la gestion des projets familiaux :
   - Création du modèle pour les projets, les phases, les participants, les contributions et les assignations
