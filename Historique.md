@@ -1,6 +1,12 @@
 # Historique du Projet JFD'HuB
 
 ## 13 Mars 2025
+- Développement de l'API pour la gestion des cotisations mensuelles :
+  - Création du modèle pour les sessions de cotisations mensuelles et les assignations
+  - Implémentation du contrôleur avec toutes les opérations CRUD
+  - Configuration des routes API avec les autorisations appropriées
+  - Mise à jour du système d'audit pour suivre les actions des utilisateurs
+
 - Migration complète des données de Supabase vers PostgreSQL local :
   - Configuration des variables d'environnement Supabase
   - Exécution du script de migration des données

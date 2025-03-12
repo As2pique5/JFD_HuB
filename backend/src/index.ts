@@ -9,6 +9,7 @@ import fs from 'fs';
 // Import des routes
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
+import monthlyContributionRoutes from './routes/monthlyContributionRoutes';
 
 // Chargement des variables d'environnement
 dotenv.config();
@@ -49,6 +50,7 @@ app.get('/', (req: Request, res: Response) => {
 // Routes de l'API
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/monthly-contributions', monthlyContributionRoutes);
 
 // Gestion des erreurs
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
