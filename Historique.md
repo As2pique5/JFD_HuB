@@ -1,5 +1,27 @@
 # Historique du Projet JFD'HuB
 
+## 14 Mars 2025
+- Poursuite de la migration vers une solution 100% locale :
+  - Création de services locaux supplémentaires pour remplacer les services Supabase :
+    - `localContributionService.ts` : Gestion des cotisations mensuelles et des paiements
+    - `localEventService.ts` : Gestion des événements familiaux et de leurs contributions
+    - `localProjectService.ts` : Gestion des projets familiaux, phases et participants
+    - `localDocumentService.ts` : Gestion des documents et catégories de documents
+    - `localMessageService.ts` : Système de messagerie interne avec pièces jointes
+  - Adaptation des services pour utiliser l'API locale via le service API central
+  - Implémentation de fonctionnalités supplémentaires dans les services locaux :
+    - Upload et téléchargement de fichiers (images, documents, pièces jointes)
+    - Recherche avancée dans les messages et documents
+    - Journalisation des événements d'audit pour toutes les actions importantes
+  - Préparation pour la mise à jour des composants React afin d'utiliser les nouveaux services
+
+- Prochaines étapes de la migration :
+  - Mettre à jour les composants React pour utiliser les nouveaux services locaux
+  - Tester chaque fonctionnalité avec l'API locale
+  - Créer des composants de test pour valider le bon fonctionnement des services
+  - Nettoyer le code en supprimant progressivement les références à Supabase
+  - Finaliser la documentation technique pour faciliter la maintenance future
+
 ## 13 Mars 2025
 - Migration vers une solution 100% locale :
   - Création des services frontend pour communiquer avec l'API locale
