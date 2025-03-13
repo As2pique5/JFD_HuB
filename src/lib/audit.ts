@@ -8,6 +8,7 @@ export type AuditAction =
   | 'password_reset'
   | 'role_change'
   | 'status_change'
+  | 'member_avatar_upload'
   
   // Cotisations mensuelles
   | 'session_create'
@@ -49,6 +50,11 @@ export type AuditAction =
   | 'document_update'
   | 'document_delete'
   | 'document_download'
+  
+  // Finances
+  | 'financial_transaction_create'
+  | 'financial_transaction_delete'
+  | 'bank_balance_update'
   
   // Messages
   | 'message_send'

@@ -1,9 +1,16 @@
 # Historique du Projet JFD'HuB
 
 ## 13 Mars 2025
+- Création de nouveaux services locaux pour remplacer les services Supabase :
+  - `localMemberService.ts` : Gestion des membres et de leurs rôles
+  - `localFinancialService.ts` : Gestion des transactions financières et du solde bancaire
+
 - Correction des erreurs de typage dans les services locaux :
   - Extension du type `AuditAction` dans `audit.ts` pour inclure toutes les actions nécessaires
-  - Ajout des actions manquantes : `project_phase_delete` et `project_contribution_update`
+  - Ajout des actions manquantes : 
+    - `project_phase_delete` et `project_contribution_update`
+    - `member_avatar_upload`
+    - `financial_transaction_create`, `financial_transaction_delete`, `bank_balance_update`
   - Implémentation d'assertions de type pour toutes les actions d'audit dans :
     - `localEventService.ts` : Gestion des événements familiaux
     - `localProjectService.ts` : Gestion des projets familiaux
