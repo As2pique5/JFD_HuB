@@ -22,6 +22,13 @@
     - `localProjectService.ts` : Gestion des projets familiaux
   - Établissement de bonnes pratiques pour la création des futurs services locaux
 
+- Correction du problème de chargement infini dans l'application :
+  - Optimisation de la fonction `syncUserState` dans `AuthContext.tsx` pour éviter les boucles infinies
+  - Ajout d'une vérification de cache pour éviter les appels inutiles à la base de données
+  - Augmentation des intervalles de vérification de session pour réduire les conflits
+  - Correction des erreurs de typage dans la gestion des rôles utilisateur
+  - Synchronisation des vérifications de connexion entre `App.tsx` et `AuthContext.tsx`
+
 ## 14 Mars 2025
 - Poursuite de la migration vers une solution 100% locale :
   - Création de services locaux supplémentaires pour remplacer les services Supabase :

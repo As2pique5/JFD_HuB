@@ -31,8 +31,9 @@ function App() {
     // Check connection immediately
     checkConnection();
 
-    // Set up periodic connection check
-    const checkInterval = setInterval(checkConnection, 30000); // Every 30 seconds
+    // Set up periodic connection check avec un intervalle plus long
+    // pour éviter les conflits avec la vérification dans AuthContext
+    const checkInterval = setInterval(checkConnection, 120000); // Toutes les 2 minutes
 
     return () => clearInterval(checkInterval);
   }, []);

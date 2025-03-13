@@ -28,15 +28,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   // Helper function to sync user state
-  const syncUserState = async (authUser: any) => {
+  const syncUserState = async (authUser: any, forceSync: boolean = false) => {
     try {
-      console.log('🔄 Starting user state sync...', { authUser });
+      console.log('🔄 Starting user state sync...', { authUser, forceSync });
       
       if (!authUser) {
         console.log('❌ No auth user, clearing state');
         setUser(null);
         localStorage.removeItem('jfdhub_user');
         return null;
+      }
+
+      // Check if we already have user data in state and localStorage
+      // and if we're not forcing a sync, return early
+      const localUserData = localStorage.getItem('jfdhub_user');
+      if (!forceSync && user && localUserData) {
+        const parsedLocalUser = JSON.parse(localUserData);
+        // Vérifier si l'ID utilisateur correspond
+        if (parsedLocalUser.id === authUser.id) {
+          console.log('🔄 Using cached user data, skipping profile fetch');
+          return parsedLocalUser;
+        }
       }
 
       // Get existing profile
@@ -81,12 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const authRole = authUser.app_metadata?.role || 'standard';
       console.log('🔑 Auth role from app_metadata:', authRole);
 
+      // Vérifier que le rôle est valide
+      const validRole = (['super_admin', 'intermediate', 'standard'] as const).includes(authRole as any) 
+        ? authRole as 'super_admin' | 'intermediate' | 'standard'
+        : 'standard';
+
       // If profile role doesn't match auth role, update profile
-      if (profile.role !== authRole) {
+      if (profile.role !== validRole) {
         console.log('⚠️ Role mismatch detected, updating profile...');
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ role: authRole })
+          .update({ role: validRole })
           .eq('id', profile.id);
 
         if (updateError) {
@@ -94,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw updateError;
         }
 
-        profile.role = authRole;
+        profile.role = validRole;
         console.log('✅ Profile role updated successfully');
       }
 
@@ -103,8 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: profile.id,
         name: profile.name,
         email: profile.email,
-        role: profile.role,
-        avatar: profile.avatar_url,
+        role: profile.role as 'super_admin' | 'intermediate' | 'standard',
+        avatar: profile.avatar_url || undefined,
       };
 
       console.log('✅ Setting user data:', userData);
@@ -165,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('🔔 Auth state changed:', event, session);
 
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out or deleted');
         setUser(null);
         localStorage.removeItem('jfdhub_user');
@@ -174,7 +191,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('🔐 User signed in or token refreshed');
         if (session?.user) {
           try {
-            await syncUserState(session.user);
+            // Forcer la synchronisation lors de la connexion ou du rafraîchissement du token
+            await syncUserState(session.user, true);
           } catch (err) {
             console.error('❌ Error syncing user state:', err);
             setUser(null);
@@ -199,8 +217,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('jfdhub_user');
           window.location.href = '/login';
         } else {
-          console.log('✅ Session valid, re-syncing user state...');
-          await syncUserState(session.user);
+          // Vérifier simplement que la session est valide, mais ne pas resynchroniser
+          // l'état utilisateur à chaque vérification pour éviter les boucles infinies
+          console.log('✅ Session valid');
         }
       } catch (err) {
         console.error('❌ Session check error:', err);
@@ -208,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('jfdhub_user');
         window.location.href = '/login';
       }
-    }, 30000); // Check every 30 seconds
+    }, 60000); // Check every 60 seconds (augmenté pour réduire les vérifications)
 
     initAuth();
 
@@ -244,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       console.log('✅ Sign in successful, syncing user state...');
-      const userData = await syncUserState(authUser);
+      const userData = await syncUserState(authUser, true);
       
       if (!userData) {
         console.error('❌ Failed to sync user state');
@@ -317,13 +336,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error('No user logged in');
 
     try {
-      console.log('🖼️ Updating avatar...', { fileName: file.name });
+      console.log('💾️ Updating avatar...', { fileName: file.name });
       
       // Upload file to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/${Math.random()}.${fileExt}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('profile_avatars')
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -333,9 +352,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (uploadError) throw uploadError;
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      const urlResult = supabase.storage
         .from('profile_avatars')
         .getPublicUrl(filePath);
+      
+      // Extraire l'URL publique du résultat
+      const publicUrl = urlResult.data.publicUrl;
 
       console.log('✅ Avatar uploaded successfully:', publicUrl);
 
