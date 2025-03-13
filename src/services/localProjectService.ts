@@ -1,5 +1,5 @@
 import { apiService } from '../lib/api';
-import { logAuditEvent } from '../lib/audit';
+import { logAuditEvent, AuditAction } from '../lib/audit';
 
 export interface Project {
   id: string;
@@ -107,7 +107,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_create',
+        'project_create' as AuditAction,
         userId,
         newProject.id,
         {
@@ -132,7 +132,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_update',
+        'project_update' as AuditAction,
         userId,
         id,
         updates
@@ -154,7 +154,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_delete',
+        'project_delete' as AuditAction,
         userId,
         id,
         {
@@ -178,7 +178,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_phase_create',
+        'project_phase_create' as AuditAction,
         userId,
         phase.project_id,
         {
@@ -202,7 +202,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_phase_update',
+        'project_phase_update' as AuditAction,
         userId,
         id,
         updates
@@ -224,7 +224,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_phase_delete',
+        'project_phase_delete' as AuditAction,
         userId,
         id,
         {
@@ -251,7 +251,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_participant_add',
+        'project_participant_add' as AuditAction,
         userId,
         participant.project_id,
         {
@@ -276,7 +276,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_participant_remove',
+        'project_participant_remove' as AuditAction,
         userId,
         id,
         {
@@ -303,7 +303,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_contribution_create',
+        'project_contribution_create' as AuditAction,
         userId,
         contribution.project_id,
         {
@@ -328,7 +328,7 @@ class ProjectService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'project_contribution_update',
+        'project_contribution_update' as AuditAction,
         userId,
         id,
         updates
@@ -367,7 +367,7 @@ class ProjectService {
       // Journaliser l'événement d'audit
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       await logAuditEvent(
-        'project_image_upload',
+        'project_image_upload' as AuditAction,
         userId,
         projectId,
         { details: `Image téléversée pour le projet avec l'ID: ${projectId}` }

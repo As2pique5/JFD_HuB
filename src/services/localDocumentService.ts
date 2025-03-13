@@ -1,5 +1,5 @@
 import { apiService } from '../lib/api';
-import { logAuditEvent } from '../lib/audit';
+import { logAuditEvent, AuditAction } from '../lib/audit';
 
 export interface Document {
   id: string;
@@ -80,7 +80,7 @@ class DocumentService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'document_category_create',
+        'document_category_create' as AuditAction,
         userId,
         newCategory.id,
         {
@@ -104,7 +104,7 @@ class DocumentService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'document_category_update',
+        'document_category_update' as AuditAction,
         userId,
         id,
         {
@@ -129,7 +129,7 @@ class DocumentService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'document_category_delete',
+        'document_category_delete' as AuditAction,
         userId,
         id,
         {
@@ -187,7 +187,7 @@ class DocumentService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'document_upload',
+        'document_upload' as AuditAction,
         userId,
         data.id,
         {
@@ -213,7 +213,7 @@ class DocumentService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'document_delete',
+        'document_delete' as AuditAction,
         userId,
         documentId,
         {
@@ -240,7 +240,7 @@ class DocumentService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'document_update',
+        'document_update' as AuditAction,
         userId,
         documentId,
         {
@@ -270,7 +270,7 @@ class DocumentService {
       // Journaliser l'événement d'audit
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       await logAuditEvent(
-        'document_download',
+        'document_download' as AuditAction,
         userId,
         documentId,
         {

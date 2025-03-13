@@ -1,5 +1,14 @@
 # Historique du Projet JFD'HuB
 
+## 13 Mars 2025
+- Correction des erreurs de typage dans les services locaux :
+  - Extension du type `AuditAction` dans `audit.ts` pour inclure toutes les actions nécessaires
+  - Ajout des actions manquantes : `project_phase_delete` et `project_contribution_update`
+  - Implémentation d'assertions de type pour toutes les actions d'audit dans :
+    - `localEventService.ts` : Gestion des événements familiaux
+    - `localProjectService.ts` : Gestion des projets familiaux
+  - Établissement de bonnes pratiques pour la création des futurs services locaux
+
 ## 14 Mars 2025
 - Poursuite de la migration vers une solution 100% locale :
   - Création de services locaux supplémentaires pour remplacer les services Supabase :

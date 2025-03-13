@@ -1,5 +1,5 @@
 import { apiService } from '../lib/api';
-import { logAuditEvent } from '../lib/audit';
+import { logAuditEvent, AuditAction } from '../lib/audit';
 
 export interface Event {
   id: string;
@@ -108,7 +108,7 @@ class EventService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'event_create',
+        'event_create' as AuditAction,
         userId,
         newEvent.id,
         { 
@@ -134,7 +134,7 @@ class EventService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'event_update',
+        'event_update' as AuditAction,
         userId,
         id,
         { 
@@ -160,7 +160,7 @@ class EventService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'event_delete',
+        'event_delete' as AuditAction,
         userId,
         id,
         { details: `Événement supprimé avec l'ID: ${id}` }
@@ -184,7 +184,7 @@ class EventService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'event_contribution_create',
+        'event_contribution_create' as AuditAction,
         userId,
         newContribution.id,
         {
@@ -216,7 +216,7 @@ class EventService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'event_contribution_assignments_create',
+        'event_contribution_assignments_create' as AuditAction,
         userId,
         assignments[0].event_id,
         {
@@ -241,7 +241,7 @@ class EventService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'event_participant_add',
+        'event_participant_add' as AuditAction,
         userId,
         participant.event_id,
         {
@@ -269,7 +269,7 @@ class EventService {
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
-        'event_participant_update',
+        'event_participant_update' as AuditAction,
         userId,
         participantId,
         {
@@ -311,7 +311,7 @@ class EventService {
       // Journaliser l'événement d'audit
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       await logAuditEvent(
-        'event_image_upload',
+        'event_image_upload' as AuditAction,
         userId,
         eventId,
         { details: `Image téléversée pour l'événement avec l'ID: ${eventId}` }
