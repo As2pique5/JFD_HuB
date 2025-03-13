@@ -1,8 +1,8 @@
 // Serveur Express simple pour simuler l'API locale
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const { v4: uuidv4 } = require('uuid');
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
 const PORT = 3001;
@@ -332,7 +332,7 @@ app.get('/api/financial/cash-balance', authMiddleware, (req, res) => {
   });
 });
 
-// Route pour les logs d'audit
+// Routes pour les logs d'audit
 app.post('/api/audit', (req, res) => {
   const { action, user_id, target_id, details } = req.body;
   
@@ -343,6 +343,24 @@ app.post('/api/audit', (req, res) => {
     target_id,
     details,
     created_at: new Date().toISOString()
+  };
+  
+  db.audit_logs.push(newLog);
+  
+  res.status(201).json(newLog);
+});
+
+// Route spécifique pour les logs d'audit (endpoint utilisé par la fonction logAuditEvent)
+app.post('/api/audit/logs', (req, res) => {
+  const { action, user_id, target_id, details, created_at } = req.body;
+  
+  const newLog = {
+    id: uuidv4(),
+    action,
+    user_id,
+    target_id,
+    details,
+    created_at: created_at || new Date().toISOString()
   };
   
   db.audit_logs.push(newLog);

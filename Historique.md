@@ -28,6 +28,13 @@
   - Augmentation des intervalles de vérification de session pour réduire les conflits
   - Correction des erreurs de typage dans la gestion des rôles utilisateur
   - Synchronisation des vérifications de connexion entre `App.tsx` et `AuthContext.tsx`
+  - Amélioration de la détection des rôles utilisateur pour gérer correctement le rôle "authenticated" de Supabase
+  - Mise en place d'une fonction de mise à jour des métadonnées utilisateur pour garantir la cohérence des rôles
+
+- Amélioration de l'environnement de test pour les services locaux :
+  - Correction de l'URL de l'API dans `api.ts` pour pointer vers le port 3001 au lieu de 3000
+  - Ajout de l'endpoint `/api/audit/logs` manquant dans le serveur mock API
+  - Tests réussis des services de gestion des membres (création et récupération)
 
 ## 14 Mars 2025
 - Poursuite de la migration vers une solution 100% locale :
