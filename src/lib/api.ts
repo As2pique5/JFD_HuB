@@ -76,6 +76,11 @@ export const apiService = {
     return response.data;
   },
 
+  async refreshToken(refreshToken: string) {
+    const response = await api.post('/auth/refresh-token', { refresh_token: refreshToken });
+    return response.data;
+  },
+
   // Utilisateurs
   async getUsers() {
     const response = await api.get('/users');

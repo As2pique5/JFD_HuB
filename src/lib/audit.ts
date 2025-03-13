@@ -1,6 +1,13 @@
 import { apiService } from './api';
 
 export type AuditAction = 
+  // Authentification
+  | 'user_login'
+  | 'user_logout'
+  | 'user_register'
+  | 'user_profile_update'
+  | 'token_refresh'
+  
   // Membres de la famille
   | 'member_create'
   | 'member_update'

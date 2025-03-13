@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { localAuthService, AuthUser } from '../services/localAuthService';
 
+// Interface utilisateur pour le contexte d'authentification
 interface User {
   id: string;
   name: string;
@@ -27,139 +28,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper function to sync user state
-  const syncUserState = async (authUser: any, forceSync: boolean = false) => {
+  // Helper function to convert AuthUser to User
+  const convertAuthUserToUser = (authUser: AuthUser): User => {
+    return {
+      id: authUser.id,
+      name: authUser.name || authUser.email.split('@')[0],
+      email: authUser.email,
+      role: authUser.role as 'super_admin' | 'intermediate' | 'standard',
+      avatar: authUser.avatar_url || undefined,
+    };
+  };
+
+  // Fonction pour vérifier et mettre à jour le rôle de l'utilisateur
+  const checkAndUpdateUserRole = async (userData: User): Promise<User> => {
     try {
-      console.log('🔄 Starting user state sync...', { authUser, forceSync });
-      
-      if (!authUser) {
-        console.log('❌ No auth user, clearing state');
-        setUser(null);
-        localStorage.removeItem('jfdhub_user');
-        return null;
-      }
-
-      // Vérifier la dernière synchronisation pour éviter les syncs trop fréquentes
-      const lastSyncTime = localStorage.getItem('jfdhub_last_sync');
-      const currentTime = Date.now();
-      const syncThreshold = 5000; // 5 secondes minimum entre les syncs
-      
-      // Check if we already have user data in state and localStorage
-      // and if we're not forcing a sync, return early
-      const localUserData = localStorage.getItem('jfdhub_user');
-      if (!forceSync && user && localUserData && lastSyncTime) {
-        const timeSinceLastSync = currentTime - parseInt(lastSyncTime, 10);
-        const parsedLocalUser = JSON.parse(localUserData);
-        
-        // Vérifier si l'ID utilisateur correspond et si la dernière sync est récente
-        if (parsedLocalUser.id === authUser.id && timeSinceLastSync < syncThreshold) {
-          console.log('🔄 Using cached user data, last sync was', timeSinceLastSync, 'ms ago');
-          return parsedLocalUser;
-        }
-      }
-
-      // Get existing profile
-      console.log('📥 Fetching profile...');
-      let { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      console.log('👤 Profile data:', profile);
-      console.log('❗ Profile error:', profileError);
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        throw profileError;
-      }
-
-      if (!profile) {
-        console.log('⚠️ No profile found, creating new profile...');
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authUser.id,
-            email: authUser.email,
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-            role: 'standard',
-            status: 'active'
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('❌ Error creating profile:', createError);
-          throw createError;
-        }
-        
-        console.log('✅ New profile created:', newProfile);
-        profile = newProfile;
-      }
-
-      // IGNORER COMPLÈTEMENT le rôle dans app_metadata car nous ne pouvons pas le modifier côté client
-      // Déterminer le rôle valide en fonction de l'email et du profil existant
-      let validRole: 'super_admin' | 'intermediate' | 'standard';
-      
       // Liste des emails administrateurs
       const adminEmails = ['lesaintdj@hotmail.fr'];
       
       // Vérifier si l'utilisateur est un super_admin par son email
-      const isAdminByEmail = adminEmails.includes(authUser.email);
+      const isAdminByEmail = adminEmails.includes(userData.email);
       
-      if (isAdminByEmail) {
+      let validRole: 'super_admin' | 'intermediate' | 'standard' = userData.role;
+      
+      if (isAdminByEmail && userData.role !== 'super_admin') {
         // Si c'est un administrateur par email, forcer le rôle super_admin
         validRole = 'super_admin';
-        console.log('💻 Admin détecté par email:', authUser.email);
+        console.log('💻 Admin détecté par email:', userData.email);
         
-        // Mettre à jour le profil si nécessaire
-        if (profile.role !== 'super_admin') {
-          console.log('⚠️ Forcer la mise à jour du rôle admin dans le profil');
-          await updateUserMetadata(authUser.id, 'super_admin');
-          profile.role = 'super_admin'; // Mettre à jour immédiatement l'objet profile
-        }
-      } else if (profile.role === 'super_admin' || profile.role === 'intermediate') {
-        // Conserver le rôle du profil s'il est déjà élevé
-        validRole = profile.role;
-      } else {
-        // Par défaut, tous les autres utilisateurs sont standard
+        // Mettre à jour le profil
+        await localAuthService.updateProfile({ role: 'super_admin' });
+        userData.role = 'super_admin';
+      } else if (!isAdminByEmail && userData.role === 'super_admin') {
+        // Si ce n'est pas un admin par email mais qu'il a le rôle super_admin, rétrograder
         validRole = 'standard';
+        console.log('⚠️ Rétrogradation d\'un utilisateur non admin:', userData.email);
         
-        // Mettre à jour le profil si nécessaire
-        if (profile.role !== 'standard') {
-          await updateUserMetadata(authUser.id, 'standard');
-          profile.role = 'standard'; // Mettre à jour immédiatement l'objet profile
-        }
+        // Mettre à jour le profil
+        await localAuthService.updateProfile({ role: 'standard' });
+        userData.role = 'standard';
       }
       
       console.log('🔑 Rôle final utilisé:', validRole);
-
-      // La mise à jour du profil a déjà été effectuée si nécessaire
-      // Assurons-nous que le rôle dans l'objet profile est correct
-      if (profile.role !== validRole) {
-        profile.role = validRole;
-        console.log('✅ Rôle du profil mis à jour en mémoire');
-      }
-
-      // Construct user data
-      const userData: User = {
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        role: profile.role as 'super_admin' | 'intermediate' | 'standard',
-        avatar: profile.avatar_url || undefined,
-      };
-
-      console.log('✅ Setting user data:', userData);
-      setUser(userData);
-      
-      // Stocker les données utilisateur et le timestamp de la dernière synchronisation
-      localStorage.setItem('jfdhub_user', JSON.stringify(userData));
-      localStorage.setItem('jfdhub_last_sync', Date.now().toString());
-      
-      return userData;
+      return { ...userData, role: validRole };
     } catch (err) {
-      console.error('❌ Error syncing user state:', err);
-      throw err;
+      console.error('❌ Erreur lors de la vérification du rôle:', err);
+      return userData;
     }
   };
 
@@ -176,46 +89,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Vérifier si nous sommes sur la page de login
         const isLoginPage = window.location.pathname === '/login';
         
-        // Récupérer la session actuelle
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Récupérer la session actuelle depuis notre service local
+        const isAuthenticated = localAuthService.isAuthenticated();
+        const currentUser = localAuthService.getCurrentUser();
         
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError);
-          throw sessionError;
-        }
-
-        console.log('🔐 Session data:', session);
+        console.log('🔐 État d\'authentification:', { isAuthenticated, currentUser });
 
         if (!mounted) return;
 
-        if (session?.user) {
+        if (isAuthenticated && currentUser) {
           // Session active trouvée
-          console.log('✅ Active session found, syncing user state...');
-          await syncUserState(session.user);
+          console.log('✅ Session active trouvée, synchronisation de l\'état utilisateur...');
+          
+          // Convertir l'utilisateur du service en format User pour le contexte
+          const userData = convertAuthUserToUser(currentUser);
+          
+          // Vérifier et mettre à jour le rôle si nécessaire
+          const userWithCorrectRole = await checkAndUpdateUserRole(userData);
+          
+          // Mettre à jour l'état utilisateur
+          setUser(userWithCorrectRole);
           
           // Si nous sommes sur la page de login et qu'une session est active, rediriger vers le dashboard
           if (isLoginPage) {
-            console.log('➡️ Redirecting to dashboard from login page with active session');
+            console.log('➡️ Redirection vers le tableau de bord depuis la page de connexion avec une session active');
             window.location.href = '/';
             return; // Arrêter l'exécution ici pour éviter de définir loading=false
           }
         } else {
-          console.log('ℹ️ No active session');
+          console.log('ℹ️ Aucune session active');
           setUser(null);
-          localStorage.removeItem('jfdhub_user');
           
           // Si nous ne sommes pas sur la page de login et qu'aucune session n'est active, rediriger vers login
           if (!isLoginPage) {
-            console.log('➡️ Redirecting to login page due to no active session');
+            console.log('➡️ Redirection vers la page de connexion en raison de l\'absence de session active');
             window.location.href = '/login';
             return; // Arrêter l'exécution ici pour éviter de définir loading=false
           }
         }
       } catch (err: any) {
-        console.error('❌ Auth initialization error:', err);
+        console.error('❌ Erreur d\'initialisation de l\'authentification:', err);
         if (mounted) {
           setUser(null);
-          localStorage.removeItem('jfdhub_user');
           
           // Ne rediriger vers login que si nous ne sommes pas déjà sur cette page
           if (window.location.pathname !== '/login') {
@@ -231,98 +146,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Configurer l'écouteur de changement d'état d'authentification
+    const unsubscribe = localAuthService.onAuthStateChange((authUser) => {
       if (!mounted) return;
 
-      console.log('🔔 Auth state changed:', event, session);
+      console.log('🔔 État d\'authentification changé:', authUser);
 
-      if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out');
+      if (!authUser) {
+        console.log('👋 Utilisateur déconnecté');
         setUser(null);
-        localStorage.removeItem('jfdhub_user');
         
         // Ne rediriger que si nous ne sommes pas déjà sur la page de login
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        console.log('🔐 User signed in or token refreshed');
-        if (session?.user) {
-          try {
-            // Forcer la synchronisation lors de la connexion ou du rafraîchissement du token
-            await syncUserState(session.user, true);
+      } else {
+        console.log('🔐 Utilisateur connecté ou token rafraîchi');
+        try {
+          // Convertir l'utilisateur du service en format User pour le contexte
+          const userData = convertAuthUserToUser(authUser);
+          
+          // Vérifier et mettre à jour le rôle si nécessaire
+          checkAndUpdateUserRole(userData).then(userWithCorrectRole => {
+            setUser(userWithCorrectRole);
             
             // Si nous sommes sur la page de login, rediriger vers le dashboard
             if (window.location.pathname === '/login') {
               window.location.href = '/';
             }
-          } catch (err) {
-            console.error('❌ Error syncing user state:', err);
-            setUser(null);
-            localStorage.removeItem('jfdhub_user');
-            
-            // Ne rediriger que si nous ne sommes pas déjà sur la page de login
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login';
-            }
+          });
+        } catch (err) {
+          console.error('❌ Erreur lors de la synchronisation de l\'état utilisateur:', err);
+          setUser(null);
+          
+          // Ne rediriger que si nous ne sommes pas déjà sur la page de login
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
           }
         }
       }
     });
 
-    // Start periodic session check - réduit la fréquence pour éviter les problèmes
+    // Démarrer la vérification périodique de session
     sessionCheckInterval = setInterval(async () => {
       // Ne pas vérifier si nous sommes sur la page de login ou si aucun utilisateur n'est connecté
       if (!user || window.location.pathname === '/login') return;
 
       try {
-        console.log('🔄 Performing periodic session check...');
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('🔄 Vérification périodique de session...');
+        const isValid = await localAuthService.checkSession();
         
-        if (error || !session) {
-          console.log('❌ Session check failed:', error || 'No session');
+        if (!isValid) {
+          console.log('❌ Échec de la vérification de session');
           setUser(null);
-          localStorage.removeItem('jfdhub_user');
           window.location.href = '/login';
         } else {
           // Vérifier simplement que la session est valide, mais ne pas resynchroniser
           // l'état utilisateur à chaque vérification pour éviter les boucles infinies
-          console.log('✅ Session valid');
+          console.log('✅ Session valide');
         }
       } catch (err) {
-        console.error('❌ Session check error:', err);
+        console.error('❌ Erreur de vérification de session:', err);
         // Ne pas automatiquement déconnecter en cas d'erreur temporaire
         // pour éviter les déconnexions intempestives
       }
-    }, 120000); // Check every 2 minutes pour réduire la charge
+    }, 120000); // Vérifier toutes les 2 minutes pour réduire la charge
 
     initAuth();
 
     return () => {
       mounted = false;
-      if (subscription) subscription.unsubscribe();
+      unsubscribe();
       clearInterval(sessionCheckInterval);
     };
   }, []);
 
   const login = async (email: string, password: string): Promise<User> => {
     try {
-      console.log('🔑 Attempting login...', { email });
+      console.log('🔑 Tentative de connexion...', { email });
       setLoading(true);
       setError(null);
 
-      // Clear any existing session data
-      localStorage.removeItem('jfdhub_user');
+      // Utiliser le service d'authentification local
+      const { user: authUser } = await localAuthService.login({ email, password });
 
-      const { data: { user: authUser }, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) {
-        console.error('❌ Sign in error:', signInError);
-        throw signInError;
+      if (!authUser) {
+        console.error('❌ Erreur de connexion: Utilisateur non trouvé');
+        throw new Error('Utilisateur non trouvé');
       }
 
       if (!authUser) {
@@ -330,12 +240,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('No user data returned from authentication');
       }
 
-      console.log('✅ Sign in successful, syncing user state...');
-      const userData = await syncUserState(authUser, true);
+      console.log('✅ Connexion réussie, synchronisation de l\'\u00e9tat utilisateur...');
+      
+      // Convertir l'utilisateur authentifié en format User
+      const convertedUser = convertAuthUserToUser(authUser);
+      
+      // Vérifier et mettre à jour le rôle si nécessaire
+      const userData = await checkAndUpdateUserRole(convertedUser);
       
       if (!userData) {
-        console.error('❌ Failed to sync user state');
-        throw new Error('Failed to sync user state');
+        console.error('❌ Échec de la synchronisation de l\'\u00e9tat utilisateur');
+        throw new Error('Échec de la synchronisation de l\'\u00e9tat utilisateur');
       }
 
       console.log('✅ Login complete:', userData);
@@ -383,10 +298,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Effacer complètement la session stockée
       clearStoredSession();
 
-      // Déconnexion de Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('❌ Erreur de déconnexion Supabase:', error);
+      // Déconnexion du service d'authentification local
+      try {
+        await localAuthService.logout();
+      } catch (error) {
+        console.error('❌ Erreur de déconnexion:', error);
         throw error;
       }
 
@@ -406,22 +322,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const updateProfile = async (data: Partial<User>) => {
-    if (!user) throw new Error('No user logged in');
+    if (!user) throw new Error('Aucun utilisateur connecté');
 
     try {
-      console.log('📝 Updating profile...', data);
+      console.log('📝 Mise à jour du profil...', data);
       
-      // Update profile in database
-      const { error } = await supabase
-        .from('profiles')
-        .update(data)
-        .eq('id', user.id);
+      // Convertir les données au format attendu par le service d'authentification
+      const authUserData: Partial<AuthUser> = {
+        ...data,
+        avatar_url: data.avatar
+      };
+      
+      // Mettre à jour le profil dans le service d'authentification local
+      const updatedUser = await localAuthService.updateProfile(authUserData);
+      
+      if (!updatedUser) throw new Error('Erreur lors de la mise à jour du profil');
 
-      if (error) throw error;
-
-      // Update local state
-      setUser(prev => prev ? { ...prev, ...data } : null);
-      localStorage.setItem('jfdhub_user', JSON.stringify({ ...user, ...data }));
+      // Convertir l'utilisateur mis à jour au format User
+      const convertedUser = convertAuthUserToUser(updatedUser);
+      
+      // Mettre à jour l'état local
+      setUser(prev => prev ? { ...prev, ...convertedUser } : null);
 
       console.log('✅ Profile updated successfully');
     } catch (error) {
@@ -430,72 +351,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Fonction pour mettre à jour les métadonnées de l'utilisateur dans Supabase
-  // Note: Cette fonction ne peut pas mettre à jour directement les métadonnées côté client
-  // Nous allons plutôt mettre à jour la table profiles et stocker le rôle là-bas
-  const updateUserMetadata = async (userId: string, role: 'super_admin' | 'intermediate' | 'standard') => {
-    try {
-      console.log('📝 Mise à jour du rôle utilisateur dans la table profiles...', { userId, role });
-      
-      // Mettre à jour le rôle dans la table profiles
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role })
-        .eq('id', userId);
-      
-      if (error) {
-        console.error('❌ Erreur lors de la mise à jour du rôle:', error);
-        // Ne pas bloquer le processus si la mise à jour échoue
-      } else {
-        console.log('✅ Rôle utilisateur mis à jour avec succès dans profiles');
-        
-        // Enregistrer dans le localStorage pour s'assurer que le rôle est cohérent
-        const cachedUser = localStorage.getItem('jfdhub_user');
-        if (cachedUser) {
-          const userData = JSON.parse(cachedUser);
-          userData.role = role;
-          localStorage.setItem('jfdhub_user', JSON.stringify(userData));
-          console.log('✅ Rôle mis à jour dans le cache local');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erreur lors de la mise à jour du rôle:', error);
-      // Ne pas bloquer le processus si la mise à jour échoue
-    }
-  };
+  // Cette fonction a été remplacée par la gestion des rôles dans checkAndUpdateUserRole
 
   const updateAvatar = async (file: File): Promise<string> => {
-    if (!user) throw new Error('No user logged in');
+    if (!user) throw new Error('Aucun utilisateur connecté');
 
     try {
-      console.log('💾️ Updating avatar...', { fileName: file.name });
+      console.log('💾️ Mise à jour de l\'avatar...', { fileName: file.name });
       
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/${Math.random()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('profile_avatars')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const urlResult = supabase.storage
-        .from('profile_avatars')
-        .getPublicUrl(filePath);
+      // Utiliser le service API pour téléverser le fichier
+      const formData = new FormData();
+      formData.append('avatar', file);
       
-      // Extraire l'URL publique du résultat
-      const publicUrl = urlResult.data.publicUrl;
-
-      console.log('✅ Avatar uploaded successfully:', publicUrl);
-
-      // Update user profile with new avatar URL
+      // Appel à l'API pour téléverser l'avatar
+      const response = await fetch('/api/users/avatar', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Ne pas définir Content-Type car FormData le fait automatiquement
+          // avec la bonne boundary pour les données multipart
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors du téléversement: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      const publicUrl = result.avatarUrl;
+      
+      console.log('✅ Avatar téléversé avec succès:', publicUrl);
+      
+      // Mettre à jour le profil utilisateur avec la nouvelle URL d'avatar
       await updateProfile({ avatar: publicUrl });
-
+      
       return publicUrl;
     } catch (error) {
       console.error('❌ Avatar update error:', error);

@@ -8,7 +8,8 @@ import {
   MessageSquare, 
   FileText, 
   GitBranch, 
-  X 
+  X,
+  TestTube 
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
@@ -32,6 +33,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
     { name: 'Documents', href: '/documents', icon: FileText },
     { name: 'Arbre généalogique', href: '/family-tree', icon: GitBranch },
   ];
+  
+  // Ajouter l'option de test uniquement pour les super administrateurs
+  if (user?.role === 'super_admin') {
+    navigation.push({ name: 'Test Services', href: '/test-services', icon: TestTube });
+  }
 
   return (
     <>
