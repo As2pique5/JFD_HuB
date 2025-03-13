@@ -90,13 +90,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Get the role from raw_app_meta_data
-      const authRole = authUser.app_metadata?.role || 'standard';
+      const authRole = authUser.app_metadata?.role || 'authenticated';
       console.log('🔑 Auth role from app_metadata:', authRole);
-
-      // Vérifier que le rôle est valide
-      const validRole = (['super_admin', 'intermediate', 'standard'] as const).includes(authRole as any) 
-        ? authRole as 'super_admin' | 'intermediate' | 'standard'
-        : 'standard';
+      
+      // Déterminer le rôle valide en fonction des métadonnées
+      let validRole: 'super_admin' | 'intermediate' | 'standard';
+      
+      // Vérifier si l'utilisateur est un super_admin par son email
+      const isAdminByEmail = authUser.email === 'lesaintdj@hotmail.fr';
+      
+      if (isAdminByEmail) {
+        validRole = 'super_admin';
+        console.log('💻 Admin détecté par email:', authUser.email);
+        
+        // Mettre à jour les métadonnées de l'utilisateur si nécessaire
+        if (authRole !== 'super_admin') {
+          await updateUserMetadata(authUser.id, 'super_admin');
+        }
+      } else if (authRole === 'super_admin') {
+        validRole = 'super_admin';
+      } else if (authRole === 'intermediate') {
+        validRole = 'intermediate';
+      } else {
+        // Par défaut, tous les utilisateurs authentifiés sont standard
+        validRole = 'standard';
+        
+        // Mettre à jour les métadonnées si le rôle est 'authenticated'
+        if (authRole === 'authenticated') {
+          await updateUserMetadata(authUser.id, 'standard');
+        }
+      }
+      
+      console.log('🔑 Rôle validé:', validRole);
 
       // If profile role doesn't match auth role, update profile
       if (profile.role !== validRole) {
@@ -329,6 +354,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('❌ Profile update error:', error);
       throw error;
+    }
+  };
+
+  // Fonction pour mettre à jour les métadonnées de l'utilisateur dans Supabase
+  // Note: Cette fonction ne peut pas mettre à jour directement les métadonnées côté client
+  // Nous allons plutôt mettre à jour la table profiles et stocker le rôle là-bas
+  const updateUserMetadata = async (userId: string, role: 'super_admin' | 'intermediate' | 'standard') => {
+    try {
+      console.log('📝 Mise à jour du rôle utilisateur dans la table profiles...', { userId, role });
+      
+      // Mettre à jour le rôle dans la table profiles
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', userId);
+      
+      if (error) {
+        console.error('❌ Erreur lors de la mise à jour du rôle:', error);
+        // Ne pas bloquer le processus si la mise à jour échoue
+      } else {
+        console.log('✅ Rôle utilisateur mis à jour avec succès dans profiles');
+        
+        // Enregistrer dans le localStorage pour s'assurer que le rôle est cohérent
+        const cachedUser = localStorage.getItem('jfdhub_user');
+        if (cachedUser) {
+          const userData = JSON.parse(cachedUser);
+          userData.role = role;
+          localStorage.setItem('jfdhub_user', JSON.stringify(userData));
+          console.log('✅ Rôle mis à jour dans le cache local');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour du rôle:', error);
+      // Ne pas bloquer le processus si la mise à jour échoue
     }
   };
 
