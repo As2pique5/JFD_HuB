@@ -15,6 +15,8 @@ import FamilyTree from './pages/familytree/FamilyTree';
 import Profile from './pages/profile/Profile';
 import NotFound from './pages/NotFound';
 import { ThemeProvider } from './contexts/ThemeContext';
+import ServicesTester from './tests/ServicesTester';
+import ApiMockInstructions from './tests/ApiMockInstructions';
 
 function App() {
   const { user, loading } = useAuth();
@@ -82,8 +84,10 @@ function App() {
           <Route path="/documents" element={<Documents />} />
           <Route path="/family-tree" element={<FamilyTree />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/test-services" element={<ServicesTester />} />
         </Route>
         
+        <Route path="/api-mock-instructions" element={<ApiMockInstructions />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </ThemeProvider>

@@ -5,6 +5,12 @@
   - `localMemberService.ts` : Gestion des membres et de leurs rôles
   - `localFinancialService.ts` : Gestion des transactions financières et du solde bancaire
 
+- Mise en place d'un environnement de test pour les services locaux :
+  - Création d'un serveur mock Express (`mockApiServer.js`) pour simuler l'API locale
+  - Développement d'une interface utilisateur de test (`ServicesTester.tsx`) pour interagir avec les services
+  - Configuration d'un mode de test permettant de basculer entre l'API de production et l'API mock
+  - Ajout d'une page d'instructions pour guider l'utilisateur dans l'utilisation de l'environnement de test
+
 - Correction des erreurs de typage dans les services locaux :
   - Extension du type `AuditAction` dans `audit.ts` pour inclure toutes les actions nécessaires
   - Ajout des actions manquantes : 
