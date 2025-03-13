@@ -89,55 +89,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile = newProfile;
       }
 
-      // Get the role from raw_app_meta_data
-      const authRole = authUser.app_metadata?.role || 'authenticated';
-      console.log('🔑 Auth role from app_metadata:', authRole);
-      
-      // Déterminer le rôle valide en fonction des métadonnées
+      // IGNORER COMPLÈTEMENT le rôle dans app_metadata car nous ne pouvons pas le modifier côté client
+      // Déterminer le rôle valide en fonction de l'email et du profil existant
       let validRole: 'super_admin' | 'intermediate' | 'standard';
       
+      // Liste des emails administrateurs
+      const adminEmails = ['lesaintdj@hotmail.fr'];
+      
       // Vérifier si l'utilisateur est un super_admin par son email
-      const isAdminByEmail = authUser.email === 'lesaintdj@hotmail.fr';
+      const isAdminByEmail = adminEmails.includes(authUser.email);
       
       if (isAdminByEmail) {
+        // Si c'est un administrateur par email, forcer le rôle super_admin
         validRole = 'super_admin';
         console.log('💻 Admin détecté par email:', authUser.email);
         
-        // Mettre à jour les métadonnées de l'utilisateur si nécessaire
-        if (authRole !== 'super_admin') {
+        // Mettre à jour le profil si nécessaire
+        if (profile.role !== 'super_admin') {
+          console.log('⚠️ Forcer la mise à jour du rôle admin dans le profil');
           await updateUserMetadata(authUser.id, 'super_admin');
+          profile.role = 'super_admin'; // Mettre à jour immédiatement l'objet profile
         }
-      } else if (authRole === 'super_admin') {
-        validRole = 'super_admin';
-      } else if (authRole === 'intermediate') {
-        validRole = 'intermediate';
+      } else if (profile.role === 'super_admin' || profile.role === 'intermediate') {
+        // Conserver le rôle du profil s'il est déjà élevé
+        validRole = profile.role;
       } else {
-        // Par défaut, tous les utilisateurs authentifiés sont standard
+        // Par défaut, tous les autres utilisateurs sont standard
         validRole = 'standard';
         
-        // Mettre à jour les métadonnées si le rôle est 'authenticated'
-        if (authRole === 'authenticated') {
+        // Mettre à jour le profil si nécessaire
+        if (profile.role !== 'standard') {
           await updateUserMetadata(authUser.id, 'standard');
+          profile.role = 'standard'; // Mettre à jour immédiatement l'objet profile
         }
       }
       
-      console.log('🔑 Rôle validé:', validRole);
+      console.log('🔑 Rôle final utilisé:', validRole);
 
-      // If profile role doesn't match auth role, update profile
+      // La mise à jour du profil a déjà été effectuée si nécessaire
+      // Assurons-nous que le rôle dans l'objet profile est correct
       if (profile.role !== validRole) {
-        console.log('⚠️ Role mismatch detected, updating profile...');
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ role: validRole })
-          .eq('id', profile.id);
-
-        if (updateError) {
-          console.error('❌ Error updating profile role:', updateError);
-          throw updateError;
-        }
-
         profile.role = validRole;
-        console.log('✅ Profile role updated successfully');
+        console.log('✅ Rôle du profil mis à jour en mémoire');
       }
 
       // Construct user data
