@@ -35,7 +35,10 @@ function App() {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
-  }, []);
+    
+    // Pas besoin de timeout car nous allons migrer vers une solution d'authentification locale
+    return () => {};
+  }, [loading]);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -68,17 +71,50 @@ function App() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-w-md mx-auto">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-lg font-medium text-foreground">Chargement de JFD'HuB...</p>
           
-          {/* Bouton de déconnexion d'urgence */}
-          <button 
-            onClick={forceLogout}
-            className="mt-8 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-          >
-            Déconnexion d'urgence
-          </button>
+          {/* Options de secours pour les problèmes d'authentification */}
+          <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-md w-full">
+            <p className="text-amber-800 font-medium mb-2">Transition vers l'authentification locale</p>
+            <p className="text-amber-700 mb-4">Nous sommes en train de migrer vers une solution d'authentification locale. En attendant, voici des options pour accéder à l'application :</p>
+            
+            <div className="flex flex-col gap-2">
+              <button 
+                onClick={forceLogout}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+              >
+                Déconnexion d'urgence
+              </button>
+              
+              <button 
+                onClick={() => window.location.href = '/emergency-logout.html'}
+                className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
+              >
+                Accéder à la page de déconnexion d'urgence
+              </button>
+              
+              <button 
+                onClick={() => window.location.href = '/login?bypass=true&t=' + Date.now()}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                Accéder directement à la page de connexion
+              </button>
+              
+              <button 
+                onClick={() => {
+                  // Forcer la déconnexion puis rediriger vers login
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.href = '/login?force_logout=true&nocache=' + Date.now();
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Nettoyer et rafraîchir
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

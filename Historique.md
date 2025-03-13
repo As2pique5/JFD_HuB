@@ -2,12 +2,22 @@
 
 ## 13 Mars 2025
 
-- Résolution des problèmes de persistance de session :
-  - Désactivation de la persistance de session par défaut dans la configuration Supabase (`persistSession: false`)
-  - Implémentation d'un mécanisme de détection du paramètre `force_logout` dans l'URL pour nettoyer les sessions
+- Préparation de la migration vers une authentification 100% locale :
+  - Évaluation de l'état actuel de la migration des services vers l'API locale
+  - Identification des problèmes persistants liés à l'authentification Supabase
+  - Nettoyage du code pour préparer la transition vers l'authentification locale
+  - Mise à jour de l'interface utilisateur pour indiquer la transition en cours
+  - Planification détaillée des étapes de migration de l'authentification
+
+- Amélioration de la gestion des sessions et résolution des problèmes de persistance :
+  - Refonte complète de la logique de synchronisation des états utilisateur pour éviter les boucles infinies
+  - Mise en place d'un mécanisme de limitation des synchronisations trop fréquentes avec timestamp
+  - Amélioration des redirections conditionnelles pour éviter les chargements infinis
+  - Optimisation des vérifications de session périodiques pour réduire la charge
+  - Implémentation d'une gestion de session intelligente qui maintient la session entre les rechargements
+  - Création d'un mécanisme de détection du paramètre `force_logout` dans l'URL pour nettoyer les sessions au besoin
+  - Amélioration de la fonction de déconnexion pour garantir une déconnexion complète
   - Création d'une page HTML statique (`emergency-logout.html`) pour la déconnexion d'urgence
-  - Nettoyage préventif du localStorage avant l'initialisation de Supabase
-  - Journalisation détaillée des actions de nettoyage pour faciliter le débogage
 - Création de nouveaux services locaux pour remplacer les services Supabase :
   - `localMemberService.ts` : Gestion des membres et de leurs rôles
   - `localFinancialService.ts` : Gestion des transactions financières et du solde bancaire

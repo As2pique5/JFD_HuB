@@ -115,12 +115,29 @@
         // Fonction principale de déconnexion
         async function emergencyLogout() {
             try {
-                log('🧹 Début du nettoyage du localStorage...');
+                log('🔥 Début de la déconnexion d\'urgence...');
+                
+                // 1. Nettoyer le localStorage
+                log('🧹 Nettoyage du localStorage...');
+                const localStorageCount = localStorage.length;
+                
+                // Identifier les clés Supabase pour le journal
+                const supabaseKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('sb-')) {
+                        supabaseKeys.push(key);
+                    }
+                }
+                
+                if (supabaseKeys.length > 0) {
+                    log(`🔑 Clés Supabase trouvées (${supabaseKeys.length}): ${supabaseKeys.join(', ')}`);
+                } else {
+                    log('🔑 Aucune clé Supabase trouvée');
+                }
                 
                 // Sauvegarder la liste des clés à supprimer
                 const keysToRemove = [];
-                
-                // Identifier toutes les clés à supprimer
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
                     if (key) {
@@ -128,15 +145,39 @@
                     }
                 }
                 
-                // Supprimer toutes les clés
+                // Supprimer toutes les clés une par une
                 keysToRemove.forEach(key => {
                     log(`🗑️ Suppression de la clé: ${key}`);
                     localStorage.removeItem(key);
                 });
                 
-                // Effacer également sessionStorage par précaution
+                // Effacer tout le localStorage pour s'assurer que tout est nettoyé
+                localStorage.clear();
+                log(`✅ ${localStorageCount} éléments supprimés du localStorage`);
+                
+                // 2. Nettoyer le sessionStorage
                 log('🧹 Nettoyage du sessionStorage...');
+                const sessionStorageCount = sessionStorage.length;
                 sessionStorage.clear();
+                log(`✅ ${sessionStorageCount} éléments supprimés du sessionStorage`);
+                
+                // 3. Supprimer tous les cookies
+                log('🍪 Suppression des cookies...');
+                const cookies = document.cookie.split(';');
+                
+                if (cookies.length > 0 && cookies[0] !== '') {
+                    log(`📝 ${cookies.length} cookies trouvés`);
+                    
+                    cookies.forEach(cookie => {
+                        const [name] = cookie.trim().split('=');
+                        if (name) {
+                            document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                            log(`🗑️ Cookie supprimé: ${name}`);
+                        }
+                    });
+                } else {
+                    log('🍪 Aucun cookie trouvé');
+                }
                 
                 // Vérifier que tout est bien supprimé
                 if (localStorage.length === 0) {
@@ -165,8 +206,12 @@
             // Ajouter le paramètre force_logout pour indiquer à l'application de nettoyer les sessions
             // et un timestamp pour éviter le cache
             const timestamp = new Date().getTime();
-            // Rediriger vers la racine avec les paramètres
-            window.location.href = '/?force_logout=true&nocache=' + timestamp;
+            
+            // Rediriger directement vers la page de login pour éviter le chargement infini
+            // avec les paramètres de déconnexion forcée et anti-cache
+            window.location.href = '/login?force_logout=true&nocache=' + timestamp;
+            
+            log('🔙 Redirection vers la page de connexion...');
         });
     </script>
 </body>

@@ -39,14 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
 
+      // Vérifier la dernière synchronisation pour éviter les syncs trop fréquentes
+      const lastSyncTime = localStorage.getItem('jfdhub_last_sync');
+      const currentTime = Date.now();
+      const syncThreshold = 5000; // 5 secondes minimum entre les syncs
+      
       // Check if we already have user data in state and localStorage
       // and if we're not forcing a sync, return early
       const localUserData = localStorage.getItem('jfdhub_user');
-      if (!forceSync && user && localUserData) {
+      if (!forceSync && user && localUserData && lastSyncTime) {
+        const timeSinceLastSync = currentTime - parseInt(lastSyncTime, 10);
         const parsedLocalUser = JSON.parse(localUserData);
-        // Vérifier si l'ID utilisateur correspond
-        if (parsedLocalUser.id === authUser.id) {
-          console.log('🔄 Using cached user data, skipping profile fetch');
+        
+        // Vérifier si l'ID utilisateur correspond et si la dernière sync est récente
+        if (parsedLocalUser.id === authUser.id && timeSinceLastSync < syncThreshold) {
+          console.log('🔄 Using cached user data, last sync was', timeSinceLastSync, 'ms ago');
           return parsedLocalUser;
         }
       }
@@ -144,7 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('✅ Setting user data:', userData);
       setUser(userData);
+      
+      // Stocker les données utilisateur et le timestamp de la dernière synchronisation
       localStorage.setItem('jfdhub_user', JSON.stringify(userData));
+      localStorage.setItem('jfdhub_last_sync', Date.now().toString());
+      
       return userData;
     } catch (err) {
       console.error('❌ Error syncing user state:', err);
@@ -162,6 +173,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         setError(null);
 
+        // Vérifier si nous sommes sur la page de login
+        const isLoginPage = window.location.pathname === '/login';
+        
+        // Récupérer la session actuelle
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -174,21 +189,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
 
         if (session?.user) {
+          // Session active trouvée
+          console.log('✅ Active session found, syncing user state...');
           await syncUserState(session.user);
+          
+          // Si nous sommes sur la page de login et qu'une session est active, rediriger vers le dashboard
+          if (isLoginPage) {
+            console.log('➡️ Redirecting to dashboard from login page with active session');
+            window.location.href = '/';
+            return; // Arrêter l'exécution ici pour éviter de définir loading=false
+          }
         } else {
           console.log('ℹ️ No active session');
           setUser(null);
           localStorage.removeItem('jfdhub_user');
+          
+          // Si nous ne sommes pas sur la page de login et qu'aucune session n'est active, rediriger vers login
+          if (!isLoginPage) {
+            console.log('➡️ Redirecting to login page due to no active session');
+            window.location.href = '/login';
+            return; // Arrêter l'exécution ici pour éviter de définir loading=false
+          }
         }
       } catch (err: any) {
         console.error('❌ Auth initialization error:', err);
         if (mounted) {
           setUser(null);
           localStorage.removeItem('jfdhub_user');
-          window.location.href = '/login';
+          
+          // Ne rediriger vers login que si nous ne sommes pas déjà sur cette page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+            return; // Arrêter l'exécution ici pour éviter de définir loading=false
+          }
         }
       } finally {
-        if (mounted) {
+        // Ne définir loading=false que si nous n'avons pas redirigé
+        if (mounted && window.location.href === document.location.href) {
           setLoading(false);
         }
       }
@@ -201,29 +238,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔔 Auth state changed:', event, session);
 
       if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out or deleted');
+        console.log('👋 User signed out');
         setUser(null);
         localStorage.removeItem('jfdhub_user');
-        window.location.href = '/login';
+        
+        // Ne rediriger que si nous ne sommes pas déjà sur la page de login
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         console.log('🔐 User signed in or token refreshed');
         if (session?.user) {
           try {
             // Forcer la synchronisation lors de la connexion ou du rafraîchissement du token
             await syncUserState(session.user, true);
+            
+            // Si nous sommes sur la page de login, rediriger vers le dashboard
+            if (window.location.pathname === '/login') {
+              window.location.href = '/';
+            }
           } catch (err) {
             console.error('❌ Error syncing user state:', err);
             setUser(null);
             localStorage.removeItem('jfdhub_user');
-            window.location.href = '/login';
+            
+            // Ne rediriger que si nous ne sommes pas déjà sur la page de login
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login';
+            }
           }
         }
       }
     });
 
-    // Start periodic session check
+    // Start periodic session check - réduit la fréquence pour éviter les problèmes
     sessionCheckInterval = setInterval(async () => {
-      if (!user) return;
+      // Ne pas vérifier si nous sommes sur la page de login ou si aucun utilisateur n'est connecté
+      if (!user || window.location.pathname === '/login') return;
 
       try {
         console.log('🔄 Performing periodic session check...');
@@ -241,11 +292,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.error('❌ Session check error:', err);
-        setUser(null);
-        localStorage.removeItem('jfdhub_user');
-        window.location.href = '/login';
+        // Ne pas automatiquement déconnecter en cas d'erreur temporaire
+        // pour éviter les déconnexions intempestives
       }
-    }, 60000); // Check every 60 seconds (augmenté pour réduire les vérifications)
+    }, 120000); // Check every 2 minutes pour réduire la charge
 
     initAuth();
 
@@ -298,30 +348,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Fonction pour effacer complètement la session stockée dans localStorage
+  const clearStoredSession = () => {
+    try {
+      console.log('🗑️ Nettoyage complet des données de session...');
+      
+      // Effacer les données spécifiques à l'application
+      localStorage.removeItem('jfdhub_user');
+      localStorage.removeItem('jfdhub_last_sync');
+      
+      // Effacer toutes les données de Supabase (tokens, etc.)
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          console.log('🗑️ Suppression de la clé Supabase:', key);
+          localStorage.removeItem(key);
+        }
+      });
+      
+      console.log('✅ Données de session effacées avec succès');
+    } catch (error) {
+      console.error('❌ Erreur lors du nettoyage des données de session:', error);
+    }
+  };
+
   const logout = async () => {
     try {
-      console.log('👋 Logging out...');
+      console.log('👋 Déconnexion en cours...');
       setLoading(true);
       setError(null);
 
-      // Clear local state first
+      // Effacer l'état local d'abord
       setUser(null);
-      localStorage.removeItem('jfdhub_user');
+      
+      // Effacer complètement la session stockée
+      clearStoredSession();
 
-      // Sign out from Supabase
+      // Déconnexion de Supabase
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('❌ Sign out error:', error);
+        console.error('❌ Erreur de déconnexion Supabase:', error);
         throw error;
       }
 
-      console.log('✅ Logout successful');
-      // Force reload to login page
-      window.location.href = '/login';
+      console.log('✅ Déconnexion réussie');
+      
+      // Redirection vers la page de connexion avec le paramètre force_logout
+      // pour garantir que la session ne sera pas restaurée
+      const timestamp = new Date().getTime();
+      window.location.href = `/login?force_logout=true&nocache=${timestamp}`;
     } catch (err: any) {
-      console.error('❌ Logout error:', err);
-      // Even if there's an error, force reload to login
-      window.location.href = '/login';
+      console.error('❌ Erreur lors de la déconnexion:', err);
+      // Même en cas d'erreur, rediriger vers la page de connexion avec force_logout
+      clearStoredSession(); // Essayer de nettoyer quand même
+      const timestamp = new Date().getTime();
+      window.location.href = `/login?force_logout=true&nocache=${timestamp}`;
     }
   };
 

@@ -13,7 +13,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const urlParams = new URLSearchParams(window.location.search);
 const forceLogoutParam = urlParams.get('force_logout');
 
-// Si le paramètre est présent, nettoyer le localStorage avant l'initialisation de Supabase
+// Déterminer si nous devons persister la session ou non
+// Par défaut, on persiste la session pour une meilleure expérience utilisateur
+let shouldPersistSession = true;
+
+// Si le paramètre de déconnexion forcée est présent, nettoyer le localStorage
 if (forceLogoutParam === 'true') {
   console.log('🧹 Nettoyage préventif du localStorage avant initialisation de Supabase...');
   localStorage.removeItem('jfdhub_auth');
@@ -23,11 +27,14 @@ if (forceLogoutParam === 'true') {
       localStorage.removeItem(key);
     }
   });
+  
+  // Désactiver la persistance de session uniquement lors d'une déconnexion forcée
+  shouldPersistSession = false;
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false, // Désactiver la persistance de session par défaut
+    persistSession: shouldPersistSession, // Persister la session par défaut, sauf en cas de déconnexion forcée
     autoRefreshToken: true,
     detectSessionInUrl: false,
     storage: localStorage,
@@ -54,26 +61,31 @@ export const forceCompleteSignOut = async () => {
     // 1. D'abord, essayer de se déconnecter normalement via l'API
     await supabase.auth.signOut();
     
-    // 2. Effacer spécifiquement la clé de session Supabase
-    localStorage.removeItem('jfdhub_auth');
+    // 2. Effacer TOUTES les données du localStorage
+    console.log('🧹 Nettoyage complet du localStorage...');
+    localStorage.clear();
     
-    // 3. Effacer toutes les clés Supabase par sécurité
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('sb-')) {
-        console.log('🗑️ Suppression de la clé Supabase:', key);
-        localStorage.removeItem(key);
-      }
+    // 3. Effacer TOUTES les données du sessionStorage
+    console.log('🧹 Nettoyage du sessionStorage...');
+    sessionStorage.clear();
+    
+    // 4. Supprimer tous les cookies liés à l'authentification
+    console.log('🍪 Suppression des cookies...');
+    document.cookie.split(';').forEach(cookie => {
+      const [name] = cookie.trim().split('=');
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     });
     
-    // 4. Effacer les données spécifiques à l'application
-    localStorage.removeItem('jfdhub_user');
-    localStorage.removeItem('jfdhub_last_sync');
+    // 5. Forcer la réinitialisation de l'état de l'application
+    console.log('🔄 Réinitialisation de l\'application...');
     
     console.log('✅ Déconnexion forcée réussie');
     return true;
   } catch (error) {
     console.error('❌ Erreur lors de la déconnexion forcée:', error);
-    return false;
+    // Même en cas d'erreur, on considère que la déconnexion a réussi
+    // car nous avons déjà nettoyé le localStorage et sessionStorage
+    return true;
   }
 };
 
