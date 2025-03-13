@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { contributionService } from '../../services/contributionService';
+import { localContributionService } from '../../services/localContributionService';
 import { formatCurrency } from '../../lib/utils';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import MonthlySessionForm from './MonthlySessionForm';
@@ -27,6 +27,26 @@ export default function MonthlyContributionList({
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
   const [sessionPayments, setSessionPayments] = useState<Record<string, Record<string, number>>>({});
+  
+  // Définition des interfaces pour les types
+  interface Session {
+    id: string;
+    name: string;
+    description?: string;
+    start_date: string;
+    status: string;
+    monthly_target_amount: number;
+    duration_months: number;
+    monthly_contribution_assignments?: any[];
+  }
+  
+  interface Payment {
+    user_id: string;
+    amount: number;
+    profiles?: {
+      name: string;
+    };
+  }
 
   // Create a stable dependency array for useEffect
   const yearsString = yearsToShow.sort().join(',');
@@ -37,17 +57,17 @@ export default function MonthlyContributionList({
       setError(null);
 
       // Get all sessions
-      const data = await contributionService.getMonthlySessions();
+      const { data } = await localContributionService.getMonthlySessions();
       
       // Filter sessions for the selected years
-      const filteredSessions = data?.filter(session => {
+      const filteredSessions = data?.filter((session: Session) => {
         const sessionYear = new Date(session.start_date).getFullYear();
         return yearsToShow.includes(sessionYear);
       }) || [];
 
       // Filter by search term if provided
       const searchedSessions = searchTerm 
-        ? filteredSessions.filter(session => 
+        ? filteredSessions.filter((session: Session) => 
             session.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             session.description?.toLowerCase().includes(searchTerm.toLowerCase())
           )
@@ -55,13 +75,13 @@ export default function MonthlyContributionList({
 
       // For each session, check if it should be marked as completed
       for (const session of searchedSessions) {
-        const payments = await contributionService.getSessionPayments(session.id);
-        const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
+        const { data: payments } = await localContributionService.getSessionPayments(session.id);
+        const totalPaid = (payments || []).reduce((sum: number, payment: Payment) => sum + payment.amount, 0);
         const targetAmount = session.monthly_target_amount * session.duration_months;
         
         // Update session status if all payments are complete
         if (totalPaid >= targetAmount && session.status === 'active') {
-          await contributionService.updateMonthlySession(session.id, {
+          await localContributionService.updateMonthlySession(session.id, {
             status: 'completed'
           });
           session.status = 'completed';
@@ -74,9 +94,9 @@ export default function MonthlyContributionList({
       const paymentsMap: Record<string, Record<string, number>> = {};
       
       for (const session of searchedSessions) {
-        const payments = await contributionService.getSessionPayments(session.id);
+        const { data: payments } = await localContributionService.getSessionPayments(session.id);
         
-        const sessionUserPayments = payments.reduce((acc: Record<string, number>, payment: any) => {
+        const sessionUserPayments = (payments || []).reduce((acc: Record<string, number>, payment: Payment) => {
           acc[payment.user_id] = (acc[payment.user_id] || 0) + payment.amount;
           return acc;
         }, {});
@@ -116,7 +136,7 @@ export default function MonthlyContributionList({
 
   const handleDeleteSession = async (sessionId: string) => {
     try {
-      await contributionService.deleteMonthlySession(sessionId);
+      await localContributionService.deleteMonthlySession(sessionId);
       await fetchSessions();
     } catch (err) {
       console.error('Error deleting session:', err);

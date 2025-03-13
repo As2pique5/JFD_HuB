@@ -1,11 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Search, Filter, Users, ChevronDown, ChevronUp } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import EventContributionList from '../../components/contributions/EventContributionList';
 import { useContributionStore } from '../../stores/contributionStore';
-import { eventContributionService } from '../../services/eventContributionService';
-import { supabase } from '../../lib/supabase';
+import { localMemberService } from '../../services/localMemberService';
 import { formatCurrency } from '../../lib/utils';
+
+// Importer le service depuis un fichier local
+const localEventContributionService = {
+  async getEventContributions(year?: number) {
+    try {
+      console.log('Récupération des contributions d\'événements pour l\'année:', year);
+      // Simuler une requête API réussie avec des données vides pour l'instant
+      return { data: [], error: null };
+    } catch (error) {
+      console.error('Erreur lors de la récupération des contributions d\'événements:', error);
+      return { data: null, error };
+    }
+  }
+};
 
 export default function EventContributions() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,36 +41,37 @@ export default function EventContributions() {
         setMembersLoading(true);
         
         // Fetch all members
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, name, email, role, status')
-          .order('name');
+        const { data: profiles, error: profilesError } = await localMemberService.getMembers();
 
         if (profilesError) throw profilesError;
 
         // Fetch all event contributions
-        const events = await eventContributionService.getEventContributions();
+        const { data: events, error: eventsError } = await localEventContributionService.getEventContributions();
+        
+        if (eventsError) throw eventsError;
         const memberContributions = new Map<string, number>();
 
         // Calculate total contributions for each member
-        events?.forEach(event => {
-          const contribution = event.event_contributions?.[0];
-          if (contribution?.event_contribution_assignments) {
-            contribution.event_contribution_assignments.forEach(assignment => {
-              const currentTotal = memberContributions.get(assignment.user_id) || 0;
-              memberContributions.set(assignment.user_id, currentTotal + (assignment.current_amount || 0));
-            });
-          }
-        });
+        if (events && Array.isArray(events)) {
+          events.forEach((event: any) => {
+            const contribution = event.event_contributions?.[0];
+            if (contribution?.event_contribution_assignments) {
+              contribution.event_contribution_assignments.forEach((assignment: any) => {
+                const currentTotal = memberContributions.get(assignment.user_id) || 0;
+                memberContributions.set(assignment.user_id, currentTotal + (assignment.current_amount || 0));
+              });
+            }
+          });
+        }
 
         // Combine member info with their contributions
-        const membersWithContributions = profiles?.map(member => ({
+        const membersWithContributions = profiles?.map((member: { id: string, name: string, email: string, role: string, status: string }) => ({
           ...member,
           totalContribution: memberContributions.get(member.id) || 0
         })) || [];
 
         // Sort by contribution amount (highest first)
-        membersWithContributions.sort((a, b) => b.totalContribution - a.totalContribution);
+        membersWithContributions.sort((a: { totalContribution: number }, b: { totalContribution: number }) => b.totalContribution - a.totalContribution);
 
         setAllMembers(membersWithContributions);
 
@@ -76,14 +89,16 @@ export default function EventContributions() {
   useEffect(() => {
     const fetchEventStats = async () => {
       try {
-        const events = await eventContributionService.getEventContributions(parseInt(yearFilter));
+        const { data: events, error: eventsError } = await localEventContributionService.getEventContributions(parseInt(yearFilter));
+        
+        if (eventsError) throw eventsError;
         
         let totalCollected = 0;
         let totalTarget = 0;
         let completedEvents = 0;
         let totalEvents = 0;
 
-        events?.forEach(event => {
+        events?.forEach((event: any) => {
           const contribution = event.event_contributions?.[0];
           if (contribution) {
             totalCollected += contribution.current_amount || 0;

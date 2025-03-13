@@ -38,22 +38,22 @@ class MemberService {
         endpoint += `?${queryParams.join('&')}`;
       }
       
-      const members = await apiService.request('GET', endpoint);
-      return members;
+      const data = await apiService.request('GET', endpoint);
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la récupération des membres:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
   async getMember(id: string) {
     try {
       console.log(`Récupération du membre avec l'ID: ${id}`);
-      const member = await apiService.request('GET', `/members/${id}`);
-      return member;
+      const data = await apiService.request('GET', `/members/${id}`);
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la récupération du membre avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -62,23 +62,23 @@ class MemberService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log('Création d\'un nouveau membre:', member);
-      const newMember = await apiService.request('POST', '/members', member);
+      const data = await apiService.request('POST', '/members', member);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
         'member_create' as AuditAction,
         userId,
-        newMember.id,
+        data.id,
         {
           name: member.name,
           role: member.role
         }
       );
       
-      return newMember;
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la création du membre:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -87,7 +87,7 @@ class MemberService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log(`Mise à jour du membre avec l'ID ${id}:`, updates);
-      const updatedMember = await apiService.request('PUT', `/members/${id}`, updates);
+      const data = await apiService.request('PUT', `/members/${id}`, updates);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -97,10 +97,10 @@ class MemberService {
         updates
       );
       
-      return updatedMember;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la mise à jour du membre avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -121,10 +121,10 @@ class MemberService {
         }
       );
       
-      return true;
+      return { data: true, error: null };
     } catch (error) {
       console.error(`Erreur lors de la suppression du membre avec l'ID ${id}:`, error);
-      throw error;
+      return { data: false, error };
     }
   }
 
@@ -133,7 +133,7 @@ class MemberService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log(`Mise à jour du statut du membre avec l'ID ${id} à ${status}`);
-      const updatedMember = await apiService.request('PATCH', `/members/${id}/status`, { status });
+      const data = await apiService.request('PATCH', `/members/${id}/status`, { status });
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -143,10 +143,10 @@ class MemberService {
         { status }
       );
       
-      return updatedMember;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la mise à jour du statut du membre avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -155,7 +155,7 @@ class MemberService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log(`Mise à jour du rôle du membre avec l'ID ${id} à ${role}`);
-      const updatedMember = await apiService.request('PATCH', `/members/${id}/role`, { role });
+      const data = await apiService.request('PATCH', `/members/${id}/role`, { role });
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -165,10 +165,10 @@ class MemberService {
         { role }
       );
       
-      return updatedMember;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la mise à jour du rôle du membre avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -205,10 +205,46 @@ class MemberService {
         { details: `Avatar téléversé pour le membre avec l'ID: ${id}` }
       );
       
-      return data;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de l'upload de l'avatar pour le membre avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
+    }
+  }
+
+  async resetMemberPassword(id: string, newPassword: string) {
+    try {
+      const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
+      
+      console.log(`Réinitialisation du mot de passe pour le membre avec l'ID ${id}`);
+      
+      const data = await apiService.request('POST', `/members/${id}/reset-password`, { password: newPassword });
+      
+      // Journaliser l'événement d'audit
+      await logAuditEvent(
+        'password_reset' as AuditAction,
+        userId,
+        id,
+        { timestamp: new Date().toISOString() }
+      );
+      
+      return { data, error: null };
+    } catch (error) {
+      console.error(`Erreur lors de la réinitialisation du mot de passe pour le membre avec l'ID ${id}:`, error);
+      return { data: null, error };
+    }
+  }
+
+  async getMemberAuditLogs(memberId: string, page = 1, limit = 10) {
+    try {
+      console.log(`Récupération des journaux d'audit pour le membre avec l'ID ${memberId}`);
+      
+      const data = await apiService.request('GET', `/audit-logs?targetId=${memberId}&page=${page}&limit=${limit}`);
+      
+      return { data, error: null };
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des journaux d'audit pour le membre avec l'ID ${memberId}:`, error);
+      return { data: null, error };
     }
   }
 }

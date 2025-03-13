@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { projectService } from '../../services/projectService';
-import { supabase } from '../../lib/supabase';
+import { localProjectService } from '../../services/localProjectService';
+import { localMemberService } from '../../services/localMemberService';
 
 const participantSchema = z.object({
   user_id: z.string().uuid('Veuillez sélectionner un membre'),
@@ -29,7 +29,7 @@ export default function ProjectParticipantForm({
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setMembers] = useState<MemberProfile[]>([]);
 
   const {
     register,
@@ -39,19 +39,22 @@ export default function ProjectParticipantForm({
     resolver: zodResolver(participantSchema),
   });
 
+  // Définir l'interface pour le profil d'un membre
+  interface MemberProfile {
+    id: string;
+    name: string;
+    email?: string;
+  }
+
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .order('name');
-
+        const { data, error } = await localMemberService.getMembers();
         if (error) throw error;
 
         // Filter out existing participants
-        const availableMembers = profiles?.filter(
-          profile => !existingParticipants.includes(profile.id)
+        const availableMembers = data?.filter(
+          (profile: MemberProfile) => !existingParticipants.includes(profile.id)
         ) || [];
 
         setMembers(availableMembers);
@@ -64,14 +67,19 @@ export default function ProjectParticipantForm({
     fetchMembers();
   }, [existingParticipants]);
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (formData: FormValues) => {
     if (!user) return;
 
     try {
       setIsLoading(true);
       setError(null);
 
-      await projectService.addProjectParticipant(projectId, data.user_id, user.id);
+      const { error } = await localProjectService.addProjectParticipant({
+        project_id: projectId,
+        user_id: formData.user_id,
+        role: 'contributor'
+      });
+      if (error) throw error;
 
       onSuccess();
       onClose();

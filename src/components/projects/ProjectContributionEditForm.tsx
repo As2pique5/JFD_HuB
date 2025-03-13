@@ -4,8 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
-import { logAuditEvent } from '../../lib/audit';
+import { localProjectContributionService } from '../../services/localProjectContributionService';
 
 const contributionSchema = z.object({
   target_amount: z.number()
@@ -33,6 +32,8 @@ interface ProjectContributionEditFormProps {
 }
 
 export default function ProjectContributionEditForm({
+  // projectId n'est plus utilisé depuis la migration vers le service local
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   projectId,
   contribution,
   onClose,
@@ -62,23 +63,16 @@ export default function ProjectContributionEditForm({
       setIsLoading(true);
       setError(null);
 
-      // Update the contribution
-      const { error: updateError } = await supabase
-        .from('project_contributions')
-        .update({
+      // Update the contribution using the local service
+      await localProjectContributionService.updateProjectContribution(
+        contribution.id,
+        {
           target_amount: data.target_amount,
           start_date: data.start_date,
           duration_months: data.duration_months,
-        })
-        .eq('id', contribution.id);
-
-      if (updateError) throw updateError;
-
-      // Log the update
-      await logAuditEvent('project_contribution_update', user.id, contribution.id, {
-        project_id: projectId,
-        ...data,
-      });
+        },
+        user.id
+      );
 
       onSuccess();
       onClose();

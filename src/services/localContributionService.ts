@@ -58,12 +58,12 @@ class ContributionService {
         url += `?${queryParams.join('&')}`;
       }
       
-      const sessions = await apiService.request('GET', url);
-      console.log('Sessions récupérées:', sessions);
-      return sessions || [];
+      const data = await apiService.request('GET', url);
+      console.log('Sessions récupérées:', data);
+      return { data: data || [], error: null };
     } catch (error) {
       console.error('Erreur lors de la récupération des sessions mensuelles:', error);
-      throw error;
+      return { data: [], error };
     }
   }
 
@@ -71,12 +71,12 @@ class ContributionService {
     try {
       console.log(`Récupération des paiements pour la session: ${sessionId}`);
       
-      const payments = await apiService.request('GET', `/contributions/monthly-sessions/${sessionId}/payments`);
-      console.log('Paiements récupérés:', payments);
-      return payments || [];
+      const data = await apiService.request('GET', `/contributions/monthly-sessions/${sessionId}/payments`);
+      console.log('Paiements récupérés:', data);
+      return { data: data || [], error: null };
     } catch (error) {
       console.error('Erreur lors de la récupération des paiements de session:', error);
-      throw error;
+      return { data: [], error };
     }
   }
 
@@ -84,7 +84,7 @@ class ContributionService {
     try {
       console.log('Mise à jour de la session mensuelle:', { sessionId, updates });
 
-      const updatedSession = await apiService.request('PUT', `/contributions/monthly-sessions/${sessionId}`, updates);
+      const data = await apiService.request('PUT', `/contributions/monthly-sessions/${sessionId}`, updates);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -98,11 +98,11 @@ class ContributionService {
         }
       );
       
-      console.log('Session mise à jour:', updatedSession);
-      return updatedSession;
+      console.log('Session mise à jour:', data);
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la mise à jour de la session mensuelle:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -110,7 +110,7 @@ class ContributionService {
     try {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
-      const newSession = await apiService.request('POST', '/contributions/monthly-sessions', {
+      const data = await apiService.request('POST', '/contributions/monthly-sessions', {
         ...session,
         created_by: userId,
       });
@@ -119,17 +119,17 @@ class ContributionService {
       await logAuditEvent(
         'session_create',
         userId,
-        newSession.id,
+        data.id,
         {
           name: session.name,
           monthly_target_amount: session.monthly_target_amount,
         }
       );
 
-      return newSession;
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la création de la session mensuelle:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -153,6 +153,19 @@ class ContributionService {
       return newAssignments;
     } catch (error) {
       console.error('Erreur lors de la création des assignations mensuelles:', error);
+      throw error;
+    }
+  }
+
+  async getMonthlyAssignments(sessionId: string) {
+    try {
+      console.log(`Récupération des assignations mensuelles pour la session: ${sessionId}`);
+      
+      const assignments = await apiService.request('GET', `/contributions/monthly-sessions/${sessionId}/assignments`);
+      console.log('Assignations récupérées:', assignments);
+      return assignments || [];
+    } catch (error) {
+      console.error('Erreur lors de la récupération des assignations mensuelles:', error);
       throw error;
     }
   }
@@ -268,6 +281,40 @@ class ContributionService {
     } catch (error) {
       console.error(`Erreur lors de l'upload du reçu de paiement pour la contribution avec l'ID ${contributionId}:`, error);
       throw error;
+    }
+  }
+
+  async deleteMonthlySession(sessionId: string) {
+    try {
+      console.log(`Suppression de la session mensuelle avec l'ID: ${sessionId}`);
+      
+      const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
+      
+      const result = await apiService.request('DELETE', `/contributions/monthly-sessions/${sessionId}`);
+      
+      // Journaliser l'événement d'audit
+      await logAuditEvent(
+        'session_update', // Utiliser session_update car session_delete n'existe pas dans AuditAction
+        userId,
+        sessionId,
+        { status: 'deleted', details: `Session mensuelle supprimée avec l'ID: ${sessionId}` }
+      );
+      
+      return { data: result, error: null };
+    } catch (error) {
+      console.error(`Erreur lors de la suppression de la session mensuelle avec l'ID ${sessionId}:`, error);
+      return { data: null, error };
+    }
+  }
+
+  async getPaidContributions() {
+    try {
+      console.log('Récupération des contributions payées');
+      const data = await apiService.request('GET', '/contributions?status=paid');
+      return { data, error: null };
+    } catch (error) {
+      console.error('Erreur lors de la récupération des contributions payées:', error);
+      return { data: null, error };
     }
   }
 }

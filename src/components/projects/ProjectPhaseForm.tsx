@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { projectService } from '../../services/projectService';
+import { localProjectService } from '../../services/localProjectService';
 
 const phaseSchema = z.object({
   name: z.string()
@@ -19,11 +19,16 @@ const phaseSchema = z.object({
 
 type FormValues = z.infer<typeof phaseSchema>;
 
+interface ProjectPhase extends FormValues {
+  id?: string;
+  project_id?: string;
+}
+
 interface ProjectPhaseFormProps {
   projectId: string;
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: Partial<FormValues>;
+  initialData?: Partial<ProjectPhase>;
   isEditing?: boolean;
 }
 
@@ -51,7 +56,7 @@ export default function ProjectPhaseForm({
     },
   });
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (formData: FormValues) => {
     if (!user) return;
 
     try {
@@ -59,12 +64,14 @@ export default function ProjectPhaseForm({
       setError(null);
 
       if (isEditing && initialData?.id) {
-        await projectService.updateProjectPhase(initialData.id, data, user.id);
+        const { error } = await localProjectService.updateProjectPhase(initialData.id, formData);
+        if (error) throw error;
       } else {
-        await projectService.createProjectPhase({
-          ...data,
+        const { error } = await localProjectService.createProjectPhase({
+          ...formData,
           project_id: projectId,
-        }, user.id);
+        });
+        if (error) throw error;
       }
 
       onSuccess();

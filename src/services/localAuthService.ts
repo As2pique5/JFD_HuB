@@ -131,11 +131,18 @@ class LocalAuthService {
       // Appel à l'API pour l'authentification
       const response = await apiService.login(credentials.email, credentials.password);
       
-      // Traitement de la réponse
+      console.log('💾 Réponse du serveur:', response);
+      
+      // Vérifier que la réponse contient les données nécessaires
+      if (!response.token || !response.user) {
+        throw new Error('Format de réponse invalide');
+      }
+      
+      // Adapter la réponse au format attendu
       this.currentSession = {
-        access_token: response.access_token,
-        refresh_token: response.refresh_token,
-        expires_at: Date.now() + (response.expires_in * 1000), // Convertir secondes en ms
+        access_token: response.token,
+        refresh_token: response.token, // Le backend n'utilise pas de refresh token pour l'instant
+        expires_at: Date.now() + (24 * 60 * 60 * 1000), // Expiration par défaut: 24h
         user: response.user
       };
       

@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { formatCurrency } from '../../lib/utils';
 import { Briefcase, Plus, Search, Filter, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { projectService } from '../../services/projectService';
+import { localProjectService } from '../../services/localProjectService';
 import ProjectForm from '../../components/projects/ProjectForm';
 import ProjectPhaseForm from '../../components/projects/ProjectPhaseForm';
 import ProjectParticipantForm from '../../components/projects/ProjectParticipantForm';
 
 export default function Projects() {
-  const { isAdmin, isIntermediate, user } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
@@ -38,13 +38,17 @@ export default function Projects() {
       setLoading(true);
       setError(null);
 
-      const data = await projectService.getProjects({
+      const { data, error } = await localProjectService.getProjects({
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: searchTerm || undefined,
       });
 
+      if (error) {
+        throw error;
+      }
+
       // Filter projects by year
-      const filteredProjects = data?.filter(project => {
+      const filteredProjects = data?.filter((project: any) => {
         const projectYear = new Date(project.start_date).getFullYear();
         return projectYear === parseInt(yearFilter);
       }) || [];
@@ -75,7 +79,12 @@ export default function Projects() {
 
     try {
       setError(null);
-      await projectService.deleteProject(projectId, user.id);
+      const { error } = await localProjectService.deleteProject(projectId);
+      
+      if (error) {
+        throw error;
+      }
+      
       await fetchProjects(); // Refresh the projects list after deletion
     } catch (err: any) {
       console.error('Error deleting project:', err);

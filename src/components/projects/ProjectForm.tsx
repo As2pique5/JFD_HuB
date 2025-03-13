@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
-import { projectService } from '../../services/projectService';
+import { localMemberService } from '../../services/localMemberService';
+import { localProjectService } from '../../services/localProjectService';
 
 const projectSchema = z.object({
   title: z.string()
@@ -26,12 +26,12 @@ const projectSchema = z.object({
     .default('not_started'),
 });
 
-type FormValues = z.infer<typeof projectSchema>;
+type FormValues = z.infer<typeof projectSchema> & { id?: string };
 
 interface ProjectFormProps {
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: Partial<FormValues>;
+  initialData?: Partial<FormValues> & { id?: string };
   isEditing?: boolean;
 }
 
@@ -66,13 +66,9 @@ export default function ProjectForm({
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .order('name');
-
+        const { data, error } = await localMemberService.getMembers();
         if (error) throw error;
-        setMembers(profiles || []);
+        setMembers(data || []);
       } catch (err) {
         console.error('Error fetching members:', err);
         setError('Impossible de charger la liste des membres');
@@ -82,7 +78,7 @@ export default function ProjectForm({
     fetchMembers();
   }, []);
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (formData: FormValues) => {
     if (!user) return;
 
     try {
@@ -90,9 +86,11 @@ export default function ProjectForm({
       setError(null);
 
       if (isEditing && initialData?.id) {
-        await projectService.updateProject(initialData.id, data, user.id);
+        const { error } = await localProjectService.updateProject(initialData.id, formData);
+        if (error) throw error;
       } else {
-        await projectService.createProject(data, user.id);
+        const { error } = await localProjectService.createProject(formData);
+        if (error) throw error;
       }
 
       onSuccess();

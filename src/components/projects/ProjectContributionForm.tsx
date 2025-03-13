@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { projectContributionService } from '../../services/projectContributionService';
+import { localProjectContributionService } from '../../services/localProjectContributionService';
 
 const contributionSchema = z.object({
   target_amount: z.number()
@@ -54,13 +54,16 @@ export default function ProjectContributionForm({
       setIsLoading(true);
       setError(null);
 
-      await projectContributionService.createProjectContribution(
+      const { error } = await localProjectContributionService.createProjectContribution(
         {
           ...data,
           project_id: projectId,
+          status: 'active', // Ajouter le statut requis par le type ProjectContribution
         },
         user.id
       );
+      
+      if (error) throw error;
 
       onSuccess();
       onClose();

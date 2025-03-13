@@ -1,82 +1,87 @@
-import { createClient } from '@supabase/supabase-js';
+// Ce fichier est maintenant un stub pour éviter les erreurs lors de la migration de Supabase
+// vers notre solution locale. Il sera progressivement remplacé par des services locaux.
+
 import type { Database } from './database.types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Créer un client factice qui ne se connecte pas réellement à Supabase
+// mais qui fournit une interface compatible pour éviter les erreurs
+console.log('⚠️ Utilisation du client Supabase factice - Migration en cours');
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables');
-  throw new Error('Missing Supabase environment variables');
-}
+// Fonction utilitaire pour créer une réponse factice
+const createMockResponse = (data = null, error = null) => {
+  return { data, error };
+};
 
-// Vérifier si l'URL contient un paramètre de déconnexion forcée
-const urlParams = new URLSearchParams(window.location.search);
-const forceLogoutParam = urlParams.get('force_logout');
-
-// Déterminer si nous devons persister la session ou non
-// Par défaut, on persiste la session pour une meilleure expérience utilisateur
-let shouldPersistSession = true;
-
-// Si le paramètre de déconnexion forcée est présent, nettoyer le localStorage
-if (forceLogoutParam === 'true') {
-  console.log('🧹 Nettoyage préventif du localStorage avant initialisation de Supabase...');
-  localStorage.removeItem('jfdhub_auth');
-  Object.keys(localStorage).forEach(key => {
-    if (key.startsWith('sb-')) {
-      console.log(`🗑️ Suppression préventive de la clé: ${key}`);
-      localStorage.removeItem(key);
-    }
-  });
-  
-  // Désactiver la persistance de session uniquement lors d'une déconnexion forcée
-  shouldPersistSession = false;
-}
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+// Client Supabase factice
+export const supabase = {
+  // Méthodes d'authentification (déjà migrées vers localAuthService)
   auth: {
-    persistSession: shouldPersistSession, // Persister la session par défaut, sauf en cas de déconnexion forcée
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-    storage: localStorage,
-    storageKey: 'jfdhub_auth',
-    flowType: 'pkce',
+    getSession: () => Promise.resolve(createMockResponse()),
+    getUser: () => Promise.resolve(createMockResponse()),
+    signOut: () => Promise.resolve(createMockResponse()),
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+    updateUser: () => Promise.resolve(createMockResponse()),
   },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
+  
+  // Méthodes de stockage
+  storage: {
+    from: (_bucket: string) => ({
+      upload: () => Promise.resolve(createMockResponse()),
+      getPublicUrl: () => ({ data: { publicUrl: '' } }),
+      remove: () => Promise.resolve(createMockResponse()),
+    }),
   },
-  global: {
-    headers: {
-      'x-application-name': 'jfdhub',
-    },
-  },
-});
+  
+  // Méthodes de base de données
+  from: (_table: string) => ({
+    select: () => ({
+      eq: () => ({
+        single: () => Promise.resolve(createMockResponse()),
+        order: () => ({
+          range: () => Promise.resolve(createMockResponse()),
+        }),
+      }),
+      order: () => ({
+        range: () => Promise.resolve(createMockResponse()),
+      }),
+      range: () => Promise.resolve(createMockResponse()),
+    }),
+    insert: () => Promise.resolve(createMockResponse()),
+    update: () => ({
+      eq: () => Promise.resolve(createMockResponse()),
+      match: () => Promise.resolve(createMockResponse()),
+    }),
+    delete: () => ({
+      eq: () => Promise.resolve(createMockResponse()),
+      match: () => Promise.resolve(createMockResponse()),
+    }),
+  }),
+  
+  // Utilitaires
+  raw: (sql: string, _params: any[]) => sql,
+};
 
 // Fonction pour forcer la déconnexion complète en effaçant toutes les données de session
 export const forceCompleteSignOut = async () => {
-  console.log('🔥 Déconnexion forcée de Supabase en cours...');
+  console.log('🔥 Déconnexion forcée en cours...');
   
   try {
-    // 1. D'abord, essayer de se déconnecter normalement via l'API
-    await supabase.auth.signOut();
-    
-    // 2. Effacer TOUTES les données du localStorage
+    // Effacer TOUTES les données du localStorage
     console.log('🧹 Nettoyage complet du localStorage...');
     localStorage.clear();
     
-    // 3. Effacer TOUTES les données du sessionStorage
+    // Effacer TOUTES les données du sessionStorage
     console.log('🧹 Nettoyage du sessionStorage...');
     sessionStorage.clear();
     
-    // 4. Supprimer tous les cookies liés à l'authentification
+    // Supprimer tous les cookies liés à l'authentification
     console.log('🍪 Suppression des cookies...');
     document.cookie.split(';').forEach(cookie => {
       const [name] = cookie.trim().split('=');
       document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
     });
     
-    // 5. Forcer la réinitialisation de l'état de l'application
+    // Forcer la réinitialisation de l'état de l'application
     console.log('🔄 Réinitialisation de l\'application...');
     
     console.log('✅ Déconnexion forcée réussie');
@@ -89,87 +94,10 @@ export const forceCompleteSignOut = async () => {
   }
 };
 
-// Add error handling and connection status check
+// Fonction de vérification de connexion (stub pour compatibilité)
 export const checkSupabaseConnection = async () => {
-  try {
-    console.log('🔍 Checking Supabase connection...');
-    
-    // First check if we have a valid session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('❌ Session check error:', sessionError);
-      // Clear invalid session data
-      await supabase.auth.signOut();
-      localStorage.removeItem('jfdhub_auth');
-      localStorage.removeItem('jfdhub_user');
-      return false;
-    }
-
-    // If no session, connection still works
-    if (!session) {
-      console.log('ℹ️ No active session');
-      return true;
-    }
-
-    console.log('🔐 Found active session:', {
-      userId: session.user.id,
-      role: session.user.user_metadata?.role,
-      email: session.user.email
-    });
-
-    // If we have a session, verify it's valid by trying to fetch the user's profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id, role, name, email')
-      .eq('id', session.user.id)
-      .single();
-
-    if (profileError) {
-      console.error('❌ Profile verification error:', profileError);
-      // Clear invalid session
-      await supabase.auth.signOut();
-      localStorage.removeItem('jfdhub_auth');
-      localStorage.removeItem('jfdhub_user');
-      return false;
-    }
-
-    console.log('👤 Found profile:', profile);
-
-    // Verify role matches
-    if (profile && profile.role !== session.user.user_metadata?.role) {
-      console.log('⚠️ Role mismatch detected:', {
-        profileRole: profile.role,
-        authRole: session.user.user_metadata?.role
-      });
-
-      // Update auth metadata with profile data
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { 
-          role: profile.role,
-          name: profile.name
-        }
-      });
-
-      if (updateError) {
-        console.error('❌ Error updating auth metadata:', updateError);
-        return false;
-      }
-
-      console.log('✅ Auth metadata updated successfully');
-    } else {
-      console.log('✅ Role verification passed');
-    }
-
-    return true;
-  } catch (err) {
-    console.error('❌ Failed to check Supabase connection:', err);
-    // Clear any invalid session data
-    await supabase.auth.signOut();
-    localStorage.removeItem('jfdhub_auth');
-    localStorage.removeItem('jfdhub_user');
-    return false;
-  }
+  console.log('⚠️ Supabase est désactivé - Utilisation de l\'authentification locale');
+  return true;
 };
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];

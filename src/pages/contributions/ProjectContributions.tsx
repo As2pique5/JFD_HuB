@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Briefcase, Search, Filter, Users, ChevronDown, ChevronUp } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import ProjectContributionList from '../../components/contributions/ProjectContributionList';
 import { useContributionStore } from '../../stores/contributionStore';
-import { projectContributionService } from '../../services/projectContributionService';
-import { supabase } from '../../lib/supabase';
+import { localProjectContributionService } from '../../services/localProjectContributionService';
+import { localMemberService } from '../../services/localMemberService';
 import { formatCurrency } from '../../lib/utils';
 
 export default function ProjectContributions() {
@@ -29,22 +28,17 @@ export default function ProjectContributions() {
         setMembersLoading(true);
         
         // Fetch all members
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, name, email, role, status')
-          .order('name');
-
-        if (profilesError) throw profilesError;
+        const profiles = await localMemberService.getMembers();
 
         // Fetch all project contributions
-        const projects = await projectContributionService.getProjectContributions();
+        const projects = await localProjectContributionService.getProjectContributions();
         const memberContributions = new Map<string, number>();
 
         // Calculate total contributions for each member
-        projects?.forEach(project => {
+        projects?.forEach((project: any) => {
           const contribution = project.project_contributions?.[0];
           if (contribution?.project_contribution_assignments) {
-            contribution.project_contribution_assignments.forEach(assignment => {
+            contribution.project_contribution_assignments.forEach((assignment: any) => {
               const currentTotal = memberContributions.get(assignment.user_id) || 0;
               memberContributions.set(assignment.user_id, currentTotal + (assignment.current_amount || 0));
             });
@@ -52,13 +46,13 @@ export default function ProjectContributions() {
         });
 
         // Combine member info with their contributions
-        const membersWithContributions = profiles?.map(member => ({
+        const membersWithContributions = profiles?.map((member: any) => ({
           ...member,
           totalContribution: memberContributions.get(member.id) || 0
         })) || [];
 
         // Sort by contribution amount (highest first)
-        membersWithContributions.sort((a, b) => b.totalContribution - a.totalContribution);
+        membersWithContributions.sort((a: any, b: any) => b.totalContribution - a.totalContribution);
 
         setAllMembers(membersWithContributions);
 
@@ -76,14 +70,14 @@ export default function ProjectContributions() {
   useEffect(() => {
     const fetchProjectStats = async () => {
       try {
-        const projects = await projectContributionService.getProjectContributions(parseInt(yearFilter));
+        const projects = await localProjectContributionService.getProjectContributions(parseInt(yearFilter));
         
         let totalCollected = 0;
         let totalTarget = 0;
         let completedProjects = 0;
         let totalProjects = 0;
 
-        projects?.forEach(project => {
+        projects?.forEach((project: any) => {
           const contribution = project.project_contributions?.[0];
           if (contribution) {
             totalCollected += contribution.current_amount || 0;

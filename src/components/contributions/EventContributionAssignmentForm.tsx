@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { eventService } from '../../services/eventService';
-import { supabase } from '../../lib/supabase';
+import { localEventService } from '../../services/localEventService';
+import { localMemberService } from '../../services/localMemberService';
 import { formatCurrency } from '../../lib/utils';
 
 const assignmentSchema = z.object({
@@ -69,21 +69,15 @@ export default function EventContributionAssignmentForm({
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .order('name');
+        // Récupérer tous les membres
+        const profiles = await localMemberService.getMembers();
 
-        if (error) throw error;
+        // Récupérer les assignations existantes pour cet événement
+        const existingAssignments = await localEventService.getEventContributionAssignments(eventId);
 
-        // Filter out members who are already assigned
-        const { data: existingAssignments } = await supabase
-          .from('event_contribution_assignments')
-          .select('user_id')
-          .eq('event_id', eventId);
-
-        const assignedUserIds = new Set(existingAssignments?.map(a => a.user_id) || []);
-        const availableMembers = profiles?.filter(p => !assignedUserIds.has(p.id)) || [];
+        // Filtrer les membres qui ont déjà une assignation
+        const assignedUserIds = new Set(existingAssignments?.map((a: any) => a.user_id) || []);
+        const availableMembers = profiles?.filter((p: any) => !assignedUserIds.has(p.id)) || [];
 
         setMembers(availableMembers);
       } catch (err) {
@@ -116,7 +110,7 @@ export default function EventContributionAssignmentForm({
         deadline,
       }));
 
-      await eventService.createEventContributionAssignments(assignments, user.id);
+      await localEventService.createEventContributionAssignments(assignments);
 
       onSuccess();
       onClose();

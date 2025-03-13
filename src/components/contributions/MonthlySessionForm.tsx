@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { monthlySessionSchema } from '../../lib/validation/contributionSchemas';
-import type { MonthlyContributionSession } from '../../services/contributionService';
-import { contributionService } from '../../services/contributionService';
+import type { MonthlyContributionSession } from '../../services/localContributionService';
+import { localContributionService } from '../../services/localContributionService';
 import { useAuth } from '../../contexts/AuthContext';
 import { X } from 'lucide-react';
 
@@ -57,13 +57,14 @@ export default function MonthlySessionForm({
       };
 
       if (isEditing && initialData?.id) {
-        await contributionService.updateMonthlySession(
+        const result = await localContributionService.updateMonthlySession(
           initialData.id,
-          sessionData,
-          user.id
+          sessionData
         );
+        if (result.error) throw result.error;
       } else {
-        await contributionService.createMonthlySession(sessionData, user.id);
+        const result = await localContributionService.createMonthlySession(sessionData);
+        if (result.error) throw result.error;
       }
 
       onSuccess();

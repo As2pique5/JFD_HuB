@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { projectContributionService } from '../../services/projectContributionService';
+import { localProjectContributionService } from '../../services/localProjectContributionService';
 import { formatCurrency } from '../../lib/utils';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import ProjectContributionForm from '../projects/ProjectContributionForm';
@@ -41,26 +41,26 @@ export default function ProjectContributionList({ searchTerm, yearFilter }: Proj
       setLoading(true);
       setError(null);
 
-      const data = await projectContributionService.getProjectContributions(yearFilter);
+      const data = await localProjectContributionService.getProjectContributions(yearFilter);
 
       // Calculate statistics
-      const yearProjects = data?.filter(project => new Date(project.start_date).getFullYear() === yearFilter) || [];
-      const fullyPaidProjects = yearProjects.filter(project => {
+      const yearProjects = data?.filter((project: any) => new Date(project.start_date).getFullYear() === yearFilter) || [];
+      const fullyPaidProjects = yearProjects.filter((project: any) => {
         const contribution = project.project_contributions?.[0];
         return contribution && contribution.current_amount >= contribution.target_amount;
       });
 
-      const totalContributions = yearProjects.reduce((sum, project) => {
+      const totalContributions = yearProjects.reduce((sum: number, project: any) => {
         return sum + (project.project_contributions?.[0]?.current_amount || 0);
       }, 0);
 
       const averageContribution = yearProjects.length > 0 ? totalContributions / yearProjects.length : 0;
 
-      const totalParticipants = yearProjects.reduce((sum, project) => {
+      const totalParticipants = yearProjects.reduce((sum: number, project: any) => {
         return sum + (project.project_contributions?.[0]?.project_contribution_assignments?.length || 0);
       }, 0);
 
-      const totalPaidParticipants = yearProjects.reduce((sum, project) => {
+      const totalPaidParticipants = yearProjects.reduce((sum: number, project: any) => {
         const assignments = project.project_contributions?.[0]?.project_contribution_assignments || [];
         return sum + assignments.filter((a: any) => (a.current_amount || 0) >= (a.target_amount || 0)).length;
       }, 0);
@@ -107,7 +107,7 @@ export default function ProjectContributionList({ searchTerm, yearFilter }: Proj
     setShowPaymentForm(true);
   };
 
-  const getPaymentStatus = (project: any, assignment: any) => {
+  const getPaymentStatus = (assignment: any) => {
     const currentAmount = assignment.current_amount || 0;
     const targetAmount = assignment.target_amount || 0;
 
@@ -132,7 +132,7 @@ export default function ProjectContributionList({ searchTerm, yearFilter }: Proj
     }
   };
 
-  const isFullyPaid = (project: any, assignment: any) => {
+  const isFullyPaid = (assignment: any) => {
     return (assignment.current_amount || 0) >= (assignment.target_amount || 0);
   };
 
@@ -327,11 +327,11 @@ export default function ProjectContributionList({ searchTerm, yearFilter }: Proj
                                   {formatCurrency(assignment.current_amount || 0)}
                                 </td>
                                 <td className="px-4 py-2 text-sm">
-                                  {getPaymentStatus(project, assignment)}
+                                  {getPaymentStatus(assignment)}
                                 </td>
                                 {isIntermediate() && (
                                   <td className="px-4 py-2 text-sm text-right">
-                                    {!isFullyPaid(project, assignment) && (
+                                    {!isFullyPaid(assignment) && (
                                       <button
                                         onClick={() => handleRecordPayment(project, assignment)}
                                         className="bg-primary text-primary-foreground px-3 py-1 rounded-md text-sm"

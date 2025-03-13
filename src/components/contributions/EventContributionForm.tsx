@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { eventService } from '../../services/eventService';
+import { localEventService } from '../../services/localEventService';
 
 const eventContributionSchema = z.object({
   target_amount: z.number()
@@ -18,11 +18,18 @@ const eventContributionSchema = z.object({
 
 type FormValues = z.infer<typeof eventContributionSchema>;
 
+interface EventContribution extends FormValues {
+  id?: string;
+  event_id: string;
+  current_amount?: number;
+  created_by?: string;
+}
+
 interface EventContributionFormProps {
   eventId: string;
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: Partial<FormValues>;
+  initialData?: Partial<EventContribution>;
   isEditing?: boolean;
 }
 
@@ -58,18 +65,16 @@ export default function EventContributionForm({
       setError(null);
 
       if (isEditing && initialData?.id) {
-        await eventService.updateEventContribution(
+        await localEventService.updateEventContribution(
           initialData.id,
-          data,
-          user.id
+          data
         );
       } else {
-        await eventService.createEventContribution(
+        await localEventService.createEventContribution(
           {
             ...data,
-            event_id: eventId,
-          },
-          user.id
+            event_id: eventId
+          }
         );
       }
 

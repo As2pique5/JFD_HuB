@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { monthlyAssignmentSchema } from '../../lib/validation/contributionSchemas';
-import type { MonthlyContributionAssignment } from '../../services/contributionService';
-import { contributionService } from '../../services/contributionService';
-import { supabase } from '../../lib/supabase';
+import type { MonthlyContributionAssignment } from '../../services/localContributionService';
+import { localContributionService } from '../../services/localContributionService';
+import { localMemberService } from '../../services/localMemberService';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatCurrency } from '../../lib/utils';
 import { X } from 'lucide-react';
@@ -36,7 +35,14 @@ export default function MonthlyAssignmentForm({
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [members, setMembers] = useState<any[]>([]);
+  // Définir l'interface pour le profil d'un membre
+  interface MemberProfile {
+    id: string;
+    name: string;
+    email?: string;
+  }
+  
+  const [members, setMembers] = useState<MemberProfile[]>([]);
   const [currentTotal, setCurrentTotal] = useState(0);
 
   const {
@@ -72,21 +78,21 @@ export default function MonthlyAssignmentForm({
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .order('name');
+        // Récupérer tous les membres
+        const { data: profiles, error: membersError } = await localMemberService.getMembers();
+        
+        if (membersError) {
+          throw membersError;
+        }
 
-        if (error) throw error;
+        // Récupérer les assignations existantes pour cette session
+        const existingAssignments = await localContributionService.getMonthlyAssignments(sessionId);
 
-        // Filter out members who are already assigned
-        const { data: existingAssignments } = await supabase
-          .from('monthly_contribution_assignments')
-          .select('user_id')
-          .eq('session_id', sessionId);
-
-        const assignedUserIds = new Set(existingAssignments?.map(a => a.user_id) || []);
-        const availableMembers = profiles?.filter(p => !assignedUserIds.has(p.id)) || [];
+        // Filtrer les membres déjà assignés
+        const assignedUserIds = new Set(existingAssignments?.map((a: MonthlyContributionAssignment) => a.user_id) || []);
+        const availableMembers = profiles && Array.isArray(profiles) 
+          ? profiles.filter((p: MemberProfile) => !assignedUserIds.has(p.id)) 
+          : [];
 
         setMembers(availableMembers);
       } catch (err) {
@@ -127,7 +133,7 @@ export default function MonthlyAssignmentForm({
       // Log the assignments being created
       console.log('Creating assignments:', assignments);
 
-      const result = await contributionService.createMonthlyAssignments(assignments, user.id);
+      const result = await localContributionService.createMonthlyAssignments(assignments);
       
       // Log the result
       console.log('Assignments created:', result);

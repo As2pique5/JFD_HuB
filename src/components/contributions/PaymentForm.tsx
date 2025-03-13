@@ -4,9 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { eventContributionService } from '../../services/eventContributionService';
-import { contributionService } from '../../services/contributionService';
-import { projectContributionService } from '../../services/projectContributionService';
+import { localEventContributionService } from '../../services/localEventContributionService';
+import { localContributionService } from '../../services/localContributionService';
+import { localProjectContributionService } from '../../services/localProjectContributionService';
 import { formatCurrency } from '../../lib/utils';
 
 const paymentSchema = z.object({
@@ -66,16 +66,16 @@ export default function PaymentForm({
 
       if (eventId) {
         // Handle event contribution payment
-        await eventContributionService.recordPayment(
+        const { error } = await localEventContributionService.recordPayment(
           eventId,
-          userId,
-          data.amount,
-          data.payment_date,
-          data.notes
+          eventId, // contributionId is same as eventId in this case
+          userId, // assignmentId is same as userId in this case
+          data.amount
         );
+        if (error) throw error;
       } else if (sessionId) {
         // Handle monthly contribution payment
-        await contributionService.recordPayment({
+        const { error } = await localContributionService.recordPayment({
           user_id: userId,
           session_id: sessionId,
           amount: data.amount,
@@ -83,16 +83,18 @@ export default function PaymentForm({
           contribution_type: 'monthly',
           status: 'paid',
           notes: data.notes,
-        }, user.id);
+        });
+        if (error) throw error;
       } else if (projectId) {
         // Handle project contribution payment
-        await projectContributionService.recordPayment(
+        const { error } = await localProjectContributionService.recordPayment(
           projectId,
           userId,
           data.amount,
           data.payment_date,
           data.notes
         );
+        if (error) throw error;
       }
 
       onSuccess();

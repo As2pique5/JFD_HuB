@@ -73,23 +73,23 @@ class ProjectService {
         url += `?${queryParams.join('&')}`;
       }
       
-      const projects = await apiService.request('GET', url);
-      console.log('Projets récupérés:', projects);
-      return projects;
+      const data = await apiService.request('GET', url);
+      console.log('Projets récupérés:', data);
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la récupération des projets:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
   async getProjectById(id: string) {
     try {
       console.log(`Récupération du projet avec l'ID: ${id}`);
-      const project = await apiService.request('GET', `/projects/${id}`);
-      return project;
+      const data = await apiService.request('GET', `/projects/${id}`);
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la récupération du projet avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -98,7 +98,7 @@ class ProjectService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log('Création d\'un nouveau projet:', project);
-      const newProject = await apiService.request('POST', '/projects', {
+      const data = await apiService.request('POST', '/projects', {
         ...project,
         spent: 0,
         progress: 0,
@@ -109,17 +109,17 @@ class ProjectService {
       await logAuditEvent(
         'project_create' as AuditAction,
         userId,
-        newProject.id,
+        data.id,
         {
           title: project.title,
           budget: project.budget,
         }
       );
       
-      return newProject;
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la création du projet:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -128,7 +128,7 @@ class ProjectService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log(`Mise à jour du projet avec l'ID ${id}:`, updates);
-      const updatedProject = await apiService.request('PUT', `/projects/${id}`, updates);
+      const data = await apiService.request('PUT', `/projects/${id}`, updates);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -138,10 +138,10 @@ class ProjectService {
         updates
       );
       
-      return updatedProject;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la mise à jour du projet avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -162,10 +162,10 @@ class ProjectService {
         }
       );
       
-      return true;
+      return { data: true, error: null };
     } catch (error) {
       console.error(`Erreur lors de la suppression du projet avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -174,7 +174,7 @@ class ProjectService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log('Création d\'une nouvelle phase de projet:', phase);
-      const newPhase = await apiService.request('POST', '/projects/phases', phase);
+      const data = await apiService.request('POST', '/projects/phases', phase);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -186,10 +186,10 @@ class ProjectService {
         }
       );
       
-      return newPhase;
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la création de la phase de projet:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -198,7 +198,7 @@ class ProjectService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log(`Mise à jour de la phase de projet avec l'ID ${id}:`, updates);
-      const updatedPhase = await apiService.request('PUT', `/projects/phases/${id}`, updates);
+      const data = await apiService.request('PUT', `/projects/phases/${id}`, updates);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -208,10 +208,10 @@ class ProjectService {
         updates
       );
       
-      return updatedPhase;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la mise à jour de la phase de projet avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -232,10 +232,10 @@ class ProjectService {
         }
       );
       
-      return true;
+      return { data: true, error: null };
     } catch (error) {
       console.error(`Erreur lors de la suppression de la phase de projet avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -244,7 +244,7 @@ class ProjectService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log('Ajout d\'un participant au projet:', participant);
-      const newParticipant = await apiService.request('POST', '/projects/participants', {
+      const data = await apiService.request('POST', '/projects/participants', {
         ...participant,
         joined_at: new Date().toISOString()
       });
@@ -260,10 +260,10 @@ class ProjectService {
         }
       );
       
-      return newParticipant;
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de l\'ajout du participant au projet:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -284,10 +284,10 @@ class ProjectService {
         }
       );
       
-      return true;
+      return { data: true, error: null };
     } catch (error) {
       console.error(`Erreur lors de la suppression du participant au projet avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -296,7 +296,7 @@ class ProjectService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log('Création d\'une nouvelle contribution pour projet:', contribution);
-      const newContribution = await apiService.request('POST', '/projects/contributions', {
+      const data = await apiService.request('POST', '/projects/contributions', {
         ...contribution,
         current_amount: 0
       });
@@ -312,10 +312,10 @@ class ProjectService {
         }
       );
       
-      return newContribution;
+      return { data, error: null };
     } catch (error) {
       console.error('Erreur lors de la création de la contribution pour projet:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -324,7 +324,7 @@ class ProjectService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log(`Mise à jour de la contribution pour projet avec l'ID ${id}:`, updates);
-      const updatedContribution = await apiService.request('PUT', `/projects/contributions/${id}`, updates);
+      const data = await apiService.request('PUT', `/projects/contributions/${id}`, updates);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -334,10 +334,10 @@ class ProjectService {
         updates
       );
       
-      return updatedContribution;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de la mise à jour de la contribution pour projet avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -373,10 +373,10 @@ class ProjectService {
         { details: `Image téléversée pour le projet avec l'ID: ${projectId}` }
       );
       
-      return data;
+      return { data, error: null };
     } catch (error) {
       console.error(`Erreur lors de l'upload de l'image pour le projet avec l'ID ${projectId}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 }

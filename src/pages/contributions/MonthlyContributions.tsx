@@ -2,15 +2,16 @@ import { useState, useEffect } from 'react';
 import { Calendar, Search, Filter, Plus, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import MonthlyContributionList from '../../components/contributions/MonthlyContributionList';
 import { useAuth } from '../../contexts/AuthContext';
-import { contributionService } from '../../services/contributionService';
+import { localContributionService } from '../../services/localContributionService';
 import { formatCurrency } from '../../lib/utils';
 import { useContributionStore } from '../../stores/contributionStore';
-import { supabase } from '../../lib/supabase';
+import { localMemberService } from '../../services/localMemberService';
 import MonthlySessionForm from '../../components/contributions/MonthlySessionForm';
 
 export default function MonthlyContributions() {
   const { isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  // Les variables loading et error sont utilisées dans le rendu de l'interface
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -20,6 +21,30 @@ export default function MonthlyContributions() {
     totalCollectedAmount: 0,
     averageContributors: 0
   });
+  
+  // Définition des interfaces pour les types
+  interface Member {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    totalContribution?: number;
+  }
+  
+  interface Session {
+    id: string;
+    start_date: string;
+    status: string;
+    monthly_target_amount: number;
+    duration_months: number;
+    monthly_contribution_assignments?: any[];
+  }
+  
+  interface Payment {
+    user_id: string;
+    amount: number;
+  }
   const [showMembersList, setShowMembersList] = useState(false);
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -52,44 +77,46 @@ export default function MonthlyContributions() {
         setMembersLoading(true);
         
         // Fetch all members
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, name, email, role, status')
-          .order('name');
+        const { data: profiles, error: profilesError } = await localMemberService.getMembers();
 
-        if (profilesError) throw profilesError;
+        if (profilesError || !profiles) throw new Error('Impossible de récupérer les profils');
 
         // Fetch all monthly contributions
-        const sessions = await contributionService.getMonthlySessions();
+        const { data: sessions, error: sessionsError } = await localContributionService.getMonthlySessions();
+        if (sessionsError) throw new Error('Impossible de récupérer les sessions');
+        
         const memberContributions = new Map<string, number>();
 
         // Calculate total contributions for each member
         for (const session of sessions || []) {
-          const payments = await contributionService.getSessionPayments(session.id);
-          for (const payment of payments) {
+          const { data: payments, error: paymentsError } = await localContributionService.getSessionPayments(session.id);
+          if (paymentsError) continue; // Skip this session if there's an error fetching payments
+          
+          for (const payment of payments || []) {
             const currentTotal = memberContributions.get(payment.user_id) || 0;
             memberContributions.set(payment.user_id, currentTotal + payment.amount);
           }
         }
 
         // Combine member info with their contributions
-        const membersWithContributions = profiles?.map(member => ({
+        const membersWithContributions = profiles?.map((member: Member) => ({
           ...member,
           totalContribution: memberContributions.get(member.id) || 0
         })) || [];
 
         // Sort by contribution amount (highest first)
-        membersWithContributions.sort((a, b) => b.totalContribution - a.totalContribution);
+        membersWithContributions.sort((a: Member, b: Member) => 
+          (b.totalContribution || 0) - (a.totalContribution || 0));
 
         setAllMembers(membersWithContributions);
         
         // Update top contributors in the global store
         const contributors = membersWithContributions
-          .filter(m => m.totalContribution > 0)
-          .map(m => ({
+          .filter((m: Member) => (m.totalContribution || 0) > 0)
+          .map((m: Member) => ({
             userId: m.id,
             name: m.name,
-            amount: m.totalContribution
+            amount: m.totalContribution || 0
           }));
         updateTopContributors(contributors);
 
@@ -110,23 +137,23 @@ export default function MonthlyContributions() {
       setError(null);
 
       // Fetch all sessions for the selected years
-      const sessions = await contributionService.getMonthlySessions();
+      const { data: sessions, error: sessionsError } = await localContributionService.getMonthlySessions();
       
-      if (!sessions) {
+      if (sessionsError || !sessions) {
         throw new Error('Impossible de récupérer les sessions');
       }
 
       // Filter sessions for the selected years
-      const relevantSessions = sessions.filter(session => {
+      const relevantSessions = sessions.filter((session: Session) => {
         const sessionYear = new Date(session.start_date).getFullYear();
         return yearsToShow.includes(sessionYear);
       });
 
       // Calculate statistics
       const totalSessions = relevantSessions.length;
-      const completedSessions = relevantSessions.filter(s => s.status === 'completed').length;
+      const completedSessions = relevantSessions.filter((s: Session) => s.status === 'completed').length;
       
-      const totalTargetAmount = relevantSessions.reduce((sum, session) => 
+      const totalTargetAmount = relevantSessions.reduce((sum: number, session: Session) => 
         sum + (session.monthly_target_amount * session.duration_months), 0);
       
       // Calculate total collected amount from all contributions
@@ -134,23 +161,37 @@ export default function MonthlyContributions() {
       const memberContributions = new Map<string, { userId: string; name: string; amount: number }>();
 
       for (const session of relevantSessions) {
-        const payments = await contributionService.getSessionPayments(session.id);
+        const { data: payments, error: paymentsError } = await localContributionService.getSessionPayments(session.id);
+        
+        if (paymentsError) continue; // Skip this session if there's an error fetching payments
         
         // Update total amount
-        totalCollectedAmount += payments.reduce((sum, payment) => sum + payment.amount, 0);
+        totalCollectedAmount += (payments || []).reduce((sum: number, payment: Payment) => sum + payment.amount, 0);
         
         // Update member contributions
-        for (const payment of payments) {
+        for (const payment of payments || []) {
           const currentTotal = memberContributions.get(payment.user_id)?.amount || 0;
+          
+          // Récupérer le nom du membre si nécessaire
+          let memberName = 'Unknown';
+          try {
+            const { data: memberProfile, error: memberError } = await localMemberService.getMember(payment.user_id);
+            if (!memberError && memberProfile) {
+              memberName = memberProfile.name || 'Unknown';
+            }
+          } catch (err) {
+            console.error('Erreur lors de la récupération du profil:', err);
+          }
+          
           memberContributions.set(payment.user_id, {
             userId: payment.user_id,
-            name: payment.profiles?.name || 'Unknown',
+            name: memberName,
             amount: currentTotal + payment.amount
           });
         }
       }
 
-      const totalContributors = relevantSessions.reduce((sum, session) => 
+      const totalContributors = relevantSessions.reduce((sum: number, session: Session) => 
         sum + (session.monthly_contribution_assignments?.length || 0), 0);
       
       const averageContributors = totalSessions > 0 ? totalContributors / totalSessions : 0;
@@ -195,6 +236,20 @@ export default function MonthlyContributions() {
 
   return (
     <div className="space-y-6">
+      {/* Afficher un message d'erreur si nécessaire */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Erreur!</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      )}
+      
+      {/* Afficher un indicateur de chargement si nécessaire */}
+      {loading && (
+        <div className="flex justify-center items-center py-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      )}
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground flex items-center">

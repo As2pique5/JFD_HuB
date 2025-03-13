@@ -118,10 +118,10 @@ class EventService {
         }
       );
       
-      return newEvent;
+      return { data: newEvent, error: null };
     } catch (error) {
       console.error('Erreur lors de la création de l\'événement:', error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -144,10 +144,10 @@ class EventService {
         }
       );
       
-      return updatedEvent;
+      return { data: updatedEvent, error: null };
     } catch (error) {
       console.error(`Erreur lors de la mise à jour de l'événement avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -156,7 +156,7 @@ class EventService {
       const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
       
       console.log(`Suppression de l'événement avec l'ID: ${id}`);
-      await apiService.request('DELETE', `/events/${id}`);
+      const result = await apiService.request('DELETE', `/events/${id}`);
       
       // Journaliser l'événement d'audit
       await logAuditEvent(
@@ -165,9 +165,11 @@ class EventService {
         id,
         { details: `Événement supprimé avec l'ID: ${id}` }
       );
+      
+      return { data: result, error: null };
     } catch (error) {
       console.error(`Erreur lors de la suppression de l'événement avec l'ID ${id}:`, error);
-      throw error;
+      return { data: null, error };
     }
   }
 
@@ -193,10 +195,47 @@ class EventService {
         }
       );
       
-      return newContribution;
+      return { data: newContribution, error: null };
     } catch (error) {
       console.error('Erreur lors de la création de la contribution pour événement:', error);
+      return { data: null, error };
+    }
+  }
+
+  async updateEventContribution(contributionId: string, updates: Partial<EventContribution>) {
+    try {
+      const userId = localStorage.getItem('jfdhub_user') ? JSON.parse(localStorage.getItem('jfdhub_user') || '{}').id : 'system';
+      
+      console.log(`Mise à jour de la contribution avec l'ID ${contributionId}:`, updates);
+      const updatedContribution = await apiService.request('PUT', `/events/contributions/${contributionId}`, updates);
+      
+      // Journaliser l'événement d'audit
+      await logAuditEvent(
+        'event_contribution_update' as AuditAction,
+        userId,
+        contributionId,
+        { 
+          target_amount: updates.target_amount,
+          status: updates.status,
+          details: `Contribution mise à jour: ${contributionId}`
+        }
+      );
+      
+      return updatedContribution;
+    } catch (error) {
+      console.error(`Erreur lors de la mise à jour de la contribution avec l'ID ${contributionId}:`, error);
       throw error;
+    }
+  }
+
+  async getEventContributionAssignments(eventId: string) {
+    try {
+      console.log(`Récupération des assignations de contribution pour l'événement avec l'ID ${eventId}`);
+      const assignments = await apiService.request('GET', `/events/${eventId}/contribution-assignments`);
+      return assignments;
+    } catch (error) {
+      console.error(`Erreur lors de la récupération des assignations de contribution pour l'événement avec l'ID ${eventId}:`, error);
+      return [];
     }
   }
 

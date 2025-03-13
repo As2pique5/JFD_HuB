@@ -8,6 +8,71 @@ const router = express.Router();
 // Toutes les routes utilisateurs nécessitent une authentification
 router.use(authenticate as express.RequestHandler);
 
+// Routes spécifiques pour le profil de l'utilisateur connecté
+router.get('/profile', (async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    
+    const user = await userModel.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+    
+    // Renvoyer les informations de l'utilisateur (sans le mot de passe)
+    return res.status(200).json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      birth_date: user.birth_date,
+      address: user.address,
+      bio: user.bio,
+      avatar_url: user.avatar_url,
+      status: user.status,
+      created_at: user.created_at
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération du profil:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+}) as unknown as express.RequestHandler);
+
+router.put('/profile', (async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const userData = req.body;
+    
+    // Vérifier si l'utilisateur existe
+    const existingUser = await userModel.findById(userId);
+    if (!existingUser) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+    
+    // Mettre à jour l'utilisateur
+    const updatedUser = await userModel.update(userId, userData);
+    
+    // Renvoyer l'utilisateur mis à jour (sans le mot de passe)
+    return res.status(200).json({
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      phone: updatedUser.phone,
+      birth_date: updatedUser.birth_date,
+      address: updatedUser.address,
+      bio: updatedUser.bio,
+      avatar_url: updatedUser.avatar_url,
+      status: updatedUser.status,
+      created_at: updatedUser.created_at
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du profil:', error);
+    return res.status(500).json({ message: 'Erreur serveur' });
+  }
+}) as unknown as express.RequestHandler);
+
 // Routes accessibles aux super_admin et intermediate
 router.get('/', authorize(['super_admin', 'intermediate']) as express.RequestHandler, (async (req: Request, res: Response) => {
   try {

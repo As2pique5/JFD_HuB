@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { eventService } from '../../services/eventService';
+import { localEventService, Event, EventContributionAssignment } from '../../services/localEventService';
 import { formatCurrency } from '../../lib/utils';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import EventContributionForm from './EventContributionForm';
@@ -14,7 +14,7 @@ interface EventContributionListProps {
 
 export default function EventContributionList({ searchTerm, yearFilter }: EventContributionListProps) {
   const { isAdmin, isIntermediate } = useAuth();
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -42,39 +42,39 @@ export default function EventContributionList({ searchTerm, yearFilter }: EventC
       setError(null);
 
       // Get events with contributions
-      const { data: events, error } = await eventService.getEvents({
+      const { data: events, error } = await localEventService.getEvents({
         requiresContribution: true,
       });
 
       if (error) throw error;
 
       // Filter events for the selected year
-      const relevantEvents = events?.filter(event => {
+      const relevantEvents = events?.filter((event: Event) => {
         const eventYear = new Date(event.start_date).getFullYear();
         return eventYear === yearFilter;
       }) || [];
 
       // Calculate statistics
       const yearEvents = relevantEvents.length;
-      const fullyPaidEvents = relevantEvents.filter(event => {
-        const contribution = event.event_contributions?.[0];
+      const fullyPaidEvents = relevantEvents.filter((event: Event) => {
+        const contribution = (event as any).event_contributions?.[0];
         return contribution && contribution.current_amount >= contribution.target_amount;
       }).length;
       
-      const totalContributions = relevantEvents.reduce((sum, event) => {
-        const contribution = event.event_contributions?.[0];
+      const totalContributions = relevantEvents.reduce((sum: number, event: Event) => {
+        const contribution = (event as any).event_contributions?.[0];
         return sum + (contribution?.current_amount || 0);
       }, 0);
 
       const averageContribution = yearEvents > 0 ? totalContributions / yearEvents : 0;
 
-      const totalParticipants = relevantEvents.reduce((sum, event) => {
-        const contribution = event.event_contributions?.[0];
+      const totalParticipants = relevantEvents.reduce((sum: number, event: Event) => {
+        const contribution = (event as any).event_contributions?.[0];
         return sum + (contribution?.event_contribution_assignments?.length || 0);
       }, 0);
 
-      const totalPaidParticipants = relevantEvents.reduce((sum, event) => {
-        const contribution = event.event_contributions?.[0];
+      const totalPaidParticipants = relevantEvents.reduce((sum: number, event: Event) => {
+        const contribution = (event as any).event_contributions?.[0];
         const assignments = contribution?.event_contribution_assignments || [];
         return sum + assignments.filter((a: any) => (a.current_amount || 0) >= (a.target_amount || 0)).length;
       }, 0);
@@ -121,7 +121,7 @@ export default function EventContributionList({ searchTerm, yearFilter }: EventC
     setShowPaymentForm(true);
   };
 
-  const getPaymentStatus = (event: any, assignment: any) => {
+  const getPaymentStatus = (_event: Event, assignment: EventContributionAssignment) => {
     const currentAmount = assignment.current_amount || 0;
     const targetAmount = assignment.target_amount || 0;
 
@@ -146,7 +146,7 @@ export default function EventContributionList({ searchTerm, yearFilter }: EventC
     }
   };
 
-  const isFullyPaid = (event: any, assignment: any) => {
+  const isFullyPaid = (_event: Event, assignment: EventContributionAssignment) => {
     return (assignment.current_amount || 0) >= (assignment.target_amount || 0);
   };
 
@@ -226,7 +226,7 @@ export default function EventContributionList({ searchTerm, yearFilter }: EventC
           </div>
         ) : (
           filteredEvents.map((event) => {
-            const contribution = event.event_contributions?.[0];
+            const contribution = (event as any).event_contributions?.[0];
             const hasAssignments = contribution?.event_contribution_assignments?.length > 0;
             const totalContributors = contribution?.event_contribution_assignments?.length || 0;
             const progress = contribution ? (contribution.current_amount / contribution.target_amount) * 100 : 0;

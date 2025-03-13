@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { financialService } from '../../services/financialService';
-import { supabase } from '../../lib/supabase';
+import { localMemberService } from '../../services/localMemberService';
 
 const transactionSchema = z.object({
   date: z.string()
@@ -78,13 +78,11 @@ export default function TransactionForm({ type, onClose, onSuccess }: Transactio
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .order('name');
-
-        if (error) throw error;
-        setMembers(profiles || []);
+        const { data, error } = await localMemberService.getMembers();
+        if (error) {
+          throw error;
+        }
+        setMembers(data && Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error fetching members:', err);
         setError('Impossible de charger la liste des membres');

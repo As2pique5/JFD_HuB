@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { formatDate } from '../../lib/utils';
-import { User, Mail, Phone, Calendar, MapPin, Shield, Edit, Trash2, X } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Shield, Edit, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import MemberForm from './MemberForm';
-import { supabase } from '../../lib/supabase';
+import { localMemberService } from '../../services/localMemberService';
 
 interface MemberDetailProps {
   member: any;
@@ -45,16 +45,8 @@ export default function MemberDetail({ member, onClose, onEdit, onDelete }: Memb
       setIsDeleting(true);
       setError(null);
       
-      // Supprimer le membre de Supabase
-      const { error: deleteError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', member.id);
-      
-      if (deleteError) {
-        console.error('Erreur lors de la suppression du membre:', deleteError);
-        throw deleteError;
-      }
+      // Supprimer le membre en utilisant le service local
+      await localMemberService.deleteMember(member.id);
       
       onDelete();
       onClose();

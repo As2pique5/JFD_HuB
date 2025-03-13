@@ -4,7 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { localEventService } from '../../services/localEventService';
+import { localMemberService } from '../../services/localMemberService';
 
 const eventSchema = z.object({
   title: z.string()
@@ -27,12 +28,12 @@ const eventSchema = z.object({
     .default('upcoming'),
 });
 
-type FormValues = z.infer<typeof eventSchema>;
+type FormValues = z.infer<typeof eventSchema> & { id?: string };
 
 interface EventFormProps {
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: Partial<FormValues>;
+  initialData?: Partial<FormValues> & { id?: string };
   isEditing?: boolean;
 }
 
@@ -73,13 +74,9 @@ export default function EventForm({
   React.useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .order('name');
-
+        const { data, error } = await localMemberService.getMembers();
         if (error) throw error;
-        setMembers(profiles || []);
+        setMembers(data || []);
       } catch (err) {
         console.error('Error fetching members:', err);
         setError('Impossible de charger la liste des membres');
@@ -102,23 +99,15 @@ export default function EventForm({
       };
 
       if (isEditing && initialData?.id) {
-        const { error } = await supabase
-          .from('events')
-          .update({
-            ...eventData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', initialData.id);
-
+        const { error } = await localEventService.updateEvent(initialData.id, {
+          ...eventData,
+          // La propriété updated_at sera gérée par le backend
+        });
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('events')
-          .insert({
-            ...eventData,
-            created_by: user.id,
-          });
-
+        const { error } = await localEventService.createEvent({
+          ...eventData,
+        });
         if (error) throw error;
       }
 

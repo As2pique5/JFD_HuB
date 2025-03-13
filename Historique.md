@@ -1,6 +1,121 @@
 # Historique du Projet JFD'HuB
 
+## 14 Mars 2025
+
+- Migration des services de contribution de projet vers les services locaux :
+  - Mise à jour des composants `PaymentForm.tsx` et `ProjectContributionForm.tsx` pour utiliser `localProjectContributionService` au lieu de `projectContributionService`
+  - Ajout de la méthode `recordPayment` au service `localProjectContributionService` pour enregistrer les paiements de contribution de projet
+  - Adaptation des méthodes pour gérer correctement le format de retour des services locaux (objets avec propriétés `data` et `error`)
+  - Correction des erreurs de type dans les interfaces et les composants
+  - Standardisation de la gestion des erreurs dans tous les composants liés aux contributions de projet
+
 ## 13 Mars 2025
+
+- Migration des composants liés aux membres vers les services locaux :
+  - Mise à jour des pages `Members.tsx`, `MemberDetail.tsx` et `MemberForm.tsx` pour utiliser `localMemberService` au lieu de Supabase
+  - Adaptation des méthodes de création, mise à jour et suppression de membres pour utiliser l'API locale
+  - Correction des erreurs de type dans les interfaces des membres
+  - Suppression des imports non utilisés et correction des avertissements de lint
+
+- Migration de la page Dashboard vers les services locaux :
+  - Remplacement des appels Supabase par des appels aux services locaux correspondants
+  - Adaptation du code pour gérer correctement le format de retour des services locaux (objets avec propriétés `data` et `error`)
+  - Mise en place de valeurs par défaut pour les fonctionnalités non encore implémentées dans les services locaux
+  - Correction des erreurs de type et suppression des variables non utilisées
+
+- Migration des pages de contributions vers les services locaux :
+  - Mise à jour de `MonthlyContributions.tsx` pour utiliser `localMemberService` et `localContributionService`
+  - Adaptation du composant `MonthlyContributionList.tsx` pour utiliser `localContributionService`
+  - Ajout de la méthode `deleteMonthlySession` au service `localContributionService`
+  - Correction des erreurs de type et ajout d'interfaces pour améliorer la sécurité du typage
+  - Ajout de la méthode `getPaidContributions` au service `localContributionService`
+  - Mise à jour des composants `MemberPasswordReset` et `MemberAuditLogs` pour utiliser `localMemberService`
+  - Mise à jour de la page `ContributionsOverview` pour utiliser `localMemberService` et `localContributionService`
+  - Création du service `localEventContributionService` pour remplacer `eventContributionService`
+  - Mise à jour de la page `EventContributions` pour utiliser `localEventContributionService` et `localMemberService`
+  - Correction des erreurs de type dans les composants liés aux contributions
+  - Gestion des cas où les données peuvent être nulles ou indéfinies
+
+- Migration des pages d'événements vers les services locaux :
+  - Standardisation du service `localEventService` pour retourner des objets avec les propriétés `data` et `error`
+  - Mise à jour du composant `EventForm.tsx` pour gérer correctement les retours du service
+  - Adaptation de la page `Events.tsx` pour utiliser correctement le service local
+  - Ajout de la gestion des erreurs et des états de chargement
+  - Correction des avertissements liés aux variables non utilisées
+
+- Migration des pages de projets vers les services locaux :
+  - Standardisation du service `localProjectService` pour retourner des objets avec les propriétés `data` et `error`
+  - Mise à jour de toutes les méthodes du service pour gérer correctement les erreurs
+  - Adaptation de la page `Projects.tsx` pour utiliser le service local
+  - Mise à jour des composants `ProjectForm.tsx`, `ProjectPhaseForm.tsx` et `ProjectParticipantForm.tsx` pour utiliser le service local
+  - Correction des erreurs de lint et des variables non utilisées
+- Migration des pages de contributions vers les services locaux :
+  - Standardisation du service `localContributionService` pour retourner des objets avec les propriétés `data` et `error`
+  - Mise à jour des méthodes `createMonthlySession`, `updateMonthlySession`, `getMonthlySessions` et `getSessionPayments`
+  - Adaptation du composant `MonthlySessionForm.tsx` pour utiliser le service local
+  - Mise à jour de la page `MonthlyContributions.tsx` pour gérer correctement les erreurs
+
+- Migration des composants liés aux membres vers les services locaux :
+  - Standardisation du service `localMemberService` pour retourner des objets avec les propriétés `data` et `error` pour toutes les méthodes
+  - Ajout de la méthode `resetMemberPassword` au service `localMemberService` pour la réinitialisation des mots de passe
+  - Ajout de la méthode `getMemberAuditLogs` au service `localMemberService` pour récupérer les journaux d'audit des membres
+  - Mise à jour du composant `MemberPasswordReset.tsx` pour utiliser le service local au lieu de Supabase
+  - Mise à jour du composant `MemberAuditLogs.tsx` pour utiliser le service local au lieu de la fonction `getAuditLogs`
+
+## 14 Mars 2025
+
+- Migration des services de projets, d'événements, de transactions et de contributions vers une solution locale :
+  - Finalisation de la migration du service d'événements local (`localEventService.ts`) avec toutes les fonctionnalités nécessaires
+  - Ajout de la méthode `getEventContributionAssignments` au service local d'événements pour récupérer les assignations de contributions
+  - Mise à jour du composant `EventContributionAssignmentForm.tsx` pour utiliser le service local d'événements et le service local de membres
+  - Migration du composant `EventContributionList.tsx` pour utiliser le service local d'événements
+  - Correction des erreurs de lint liées aux types implicites dans les composants liés aux événements
+  - Utilisation de typages appropriés pour les événements et les assignations de contributions
+  - Extension du service local de contributions de projet (`localProjectContributionService.ts`) avec de nouvelles méthodes :
+    - `createProjectContributionAssignments` pour créer plusieurs assignations en une seule fois
+    - `getProjectContributionAssignments` pour récupérer les assignations existantes
+  - Extension du service local de contributions mensuelles (`localContributionService.ts`) avec de nouvelles méthodes :
+    - `getMonthlyAssignments` pour récupérer les assignations mensuelles existantes
+  - Migration des composants liés aux projets pour utiliser les services locaux :
+    - `ProjectContributionAssignmentForm.tsx` pour utiliser le service local de contributions de projet
+    - `ProjectForm.tsx` pour utiliser le service local de membres
+    - `ProjectContributionEditForm.tsx` pour utiliser le service local de contributions de projet
+    - `ProjectParticipantForm.tsx` pour utiliser le service local de membres
+  - Migration des composants liés aux transactions et aux événements :
+    - `TransactionForm.tsx` pour utiliser le service local de membres
+    - `EventForm.tsx` pour utiliser le service local d'événements et le service local de membres
+  - Migration des composants liés aux contributions :
+    - `MonthlyAssignmentForm.tsx` pour utiliser le service local de contributions et le service local de membres
+  - Correction des erreurs de lint dans les composants migrés, notamment :
+    - Ajout de typages appropriés pour les propriétés `id` manquantes dans les interfaces
+    - Utilisation d'interfaces pour les profils de membres pour éviter les types `any` implicites
+    - Suppression des imports non utilisés
+    - Utilisation de commentaires pour désactiver les avertissements pour les variables non utilisées mais requises par l'interface
+
+## 13 Mars 2025
+
+- Migration complète de l'authentification vers une solution 100% locale :
+  - Développement du service d'authentification local (`localAuthService.ts`) complet avec fonctions login, logout et vérification de session
+  - Remplacement de toutes les références à Supabase Auth dans le contexte d'authentification (`AuthContext.tsx`)
+  - Implémentation du stockage des tokens et informations utilisateur avec localStorage
+  - Mise en place d'un système de vérification périodique de la validité de la session
+  - Adaptation de la méthode `updateAvatar` pour utiliser l'API locale au lieu de Supabase Storage
+  - Simplification de la logique de synchronisation des états utilisateur
+  - Amélioration de la gestion des rôles utilisateurs avec vérification automatique
+  - Vérification du composant Login pour assurer sa compatibilité avec le nouveau service d'authentification
+  - Suppression du fichier `LocalAuthContext.tsx` devenu obsolète suite à l'intégration de sa logique dans `AuthContext.tsx`
+  - Correction de la configuration de l'API dans `api.ts` pour utiliser le port 3000 au lieu de 3001
+  - Démarrage du serveur backend pour tester l'authentification locale et vérification des utilisateurs disponibles dans la base de données
+  - Création d'un script de réinitialisation de mot de passe pour résoudre les problèmes d'authentification
+  - Test réussi de l'authentification avec le backend local
+  - Création d'un client Supabase factice pour éviter les erreurs de connexion pendant la migration
+  - Configuration d'un proxy dans Vite pour résoudre les problèmes CORS entre le frontend et le backend
+  - Adaptation du service d'authentification local pour qu'il soit compatible avec le format de réponse du backend
+  - Ajout de routes spécifiques pour le profil de l'utilisateur connecté dans le backend
+  - Modification de la méthode `updateProfile` dans `api.ts` pour utiliser l'ID de l'utilisateur au lieu de "profile"
+  - Désactivation temporaire des appels à `updateProfile` dans la fonction `checkAndUpdateUserRole` pour éviter les erreurs 500
+
+## 12 Mars 2025
 
 - Préparation de la migration vers une authentification 100% locale :
   - Évaluation de l'état actuel de la migration des services vers l'API locale

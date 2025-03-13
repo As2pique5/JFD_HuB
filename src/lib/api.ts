@@ -11,10 +11,12 @@ declare interface ImportMeta {
 
 // Créer une instance axios avec la configuration de base
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json, text/plain, */*',
   },
+  withCredentials: true,
 });
 
 // Intercepteur pour ajouter le token d'authentification à chaque requête
@@ -72,8 +74,27 @@ export const apiService = {
   },
 
   async updateProfile(data: any) {
-    const response = await api.put('/users/profile', data);
-    return response.data;
+    // Récupérer l'ID de l'utilisateur depuis le localStorage
+    const userJson = localStorage.getItem('jfdhub_user');
+    if (!userJson) {
+      throw new Error('Utilisateur non authentifié');
+    }
+    
+    try {
+      const user = JSON.parse(userJson);
+      const userId = user.id;
+      
+      if (!userId) {
+        throw new Error('ID utilisateur non disponible');
+      }
+      
+      console.log(`👤 Mise à jour du profil de l'utilisateur ${userId}`);
+      const response = await api.put(`/users/${userId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'ID utilisateur:', error);
+      throw error;
+    }
   },
 
   async refreshToken(refreshToken: string) {

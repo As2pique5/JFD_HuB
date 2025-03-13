@@ -6,14 +6,44 @@ import {
   DollarSign, 
   Briefcase, 
   Calendar, 
-  MessageSquare, 
-  FileText, 
-  GitBranch,
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { Link } from 'react-router-dom';
+import { localMemberService } from '../../services/localMemberService';
+import { localContributionService } from '../../services/localContributionService';
+import { localProjectService } from '../../services/localProjectService';
+import { localEventService } from '../../services/localEventService';
+
+interface Activity {
+  id: string;
+  action: string;
+  details: string;
+  created_at: string;
+  user_id: string;
+  user?: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+  };
+}
+
+interface Event {
+  id: string;
+  title: string;
+  start_date: string;
+  location: string;
+  type: string;
+}
+
+interface Contribution {
+  id: string;
+  monthly_amount: number;
+  session?: {
+    name: string;
+    payment_deadline_day: number;
+  };
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -26,9 +56,9 @@ export default function Dashboard() {
       activeProjects: 0,
       upcomingEvents: 0,
     },
-    recentActivities: [],
-    upcomingEvents: [],
-    pendingContributions: [],
+    recentActivities: [] as Activity[],
+    upcomingEvents: [] as Event[],
+    pendingContributions: [] as Contribution[],
     financialSummary: {
       currentBalance: 0,
       monthlyContributions: 0,
@@ -46,123 +76,66 @@ export default function Dashboard() {
       setError(null);
 
       // Fetch active members count
-      const { count: membersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
+      const { data: members } = await localMemberService.getMembers({ status: 'active' });
+      const membersCount = members?.length || 0;
 
       // Fetch active contributions count
-      const { count: contributionsCount } = await supabase
-        .from('monthly_contribution_sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
+      const { data: sessions } = await localContributionService.getMonthlySessions({ status: 'active' });
+      const contributionsCount = sessions?.length || 0;
 
       // Fetch active projects count
-      const { count: projectsCount } = await supabase
-        .from('projects')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'in_progress');
+      const { data: projects } = await localProjectService.getProjects({ status: 'in_progress' });
+      const projectsCount = projects?.length || 0;
 
       // Fetch upcoming events count
-      const { count: eventsCount } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'upcoming');
+      const { data: events } = await localEventService.getEvents({ status: 'upcoming' });
+      const eventsCount = events?.length || 0;
 
-      // Fetch recent activities
-      const { data: activities, error: activitiesError } = await supabase
-        .from('audit_logs')
-        .select(`
-          id,
-          action,
-          details,
-          created_at,
-          user_id,
-          profiles!audit_logs_user_id_fkey (
-            id,
-            name,
-            avatar_url
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      // Pour les activités récentes, nous utilisons une liste vide temporairement
+      // car le service d'audit n'est pas encore implémenté dans le service local
+      const activities: Activity[] = [];
 
-      if (activitiesError) throw activitiesError;
+      // Fetch upcoming events - nous avons déjà récupéré les événements plus haut
+      // Nous utilisons seulement les 3 premiers événements pour l'affichage
+      const upcomingEvents = events?.slice(0, 3) || [];
 
-      // Fetch upcoming events
-      const { data: events, error: eventsError } = await supabase
-        .from('events')
-        .select(`
-          id,
-          title,
-          start_date,
-          location,
-          type
-        `)
-        .eq('status', 'upcoming')
-        .order('start_date', { ascending: true })
-        .limit(3);
+      // Fetch pending contributions pour l'utilisateur actuel
+      const { data: contributions } = user?.id ? 
+        await localContributionService.getMonthlyAssignments(user.id) : 
+        { data: [] };
 
-      if (eventsError) throw eventsError;
+      // Pour le bilan financier, nous utilisons des valeurs par défaut temporairement
+      // car ces méthodes ne sont pas encore implémentées dans les services locaux
+      const balance = { amount: 0 };
 
-      // Fetch pending contributions
-      const { data: contributions, error: contributionsError } = await supabase
-        .from('monthly_contribution_assignments')
-        .select(`
-          id,
-          monthly_amount,
-          session:session_id (
-            name,
-            payment_deadline_day
-          )
-        `)
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(2);
+      // Ces variables sont déclarées mais non utilisées, nous les gardons pour référence future
+      // mais elles ne sont pas nécessaires pour le moment
+      // const currentDate = new Date();
+      // const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      // const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-      if (contributionsError) throw contributionsError;
+      // Récupérer les contributions de l'utilisateur
+      const { data: monthlyContribs } = user?.id ? 
+        await localContributionService.getUserContributions(user.id, {
+          type: 'monthly',
+          status: 'paid'
+        }) : { data: [] };
 
-      // Calculate financial summary
-      const { data: balance } = await supabase
-        .from('bank_balance_updates')
-        .select('amount')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
+      // Pour les dépenses mensuelles, nous utilisons une liste vide temporairement
+      const monthlyExp: { amount: number }[] = [];
 
-      const currentDate = new Date();
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-      const { data: monthlyContribs } = await supabase
-        .from('contributions')
-        .select('amount')
-        .gte('payment_date', firstDayOfMonth.toISOString())
-        .lte('payment_date', lastDayOfMonth.toISOString())
-        .eq('status', 'paid');
-
-      const { data: monthlyExp } = await supabase
-        .from('financial_transactions')
-        .select('amount')
-        .eq('type', 'expense')
-        .gte('date', firstDayOfMonth.toISOString())
-        .lte('date', lastDayOfMonth.toISOString());
-
-      const monthlyContributions = monthlyContribs?.reduce((sum, c) => sum + (c.amount || 0), 0) || 0;
-      const monthlyExpenses = monthlyExp?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+      const monthlyContributions = monthlyContribs.reduce((sum: number, c: any) => sum + (c.amount || 0), 0);
+      const monthlyExpenses = monthlyExp.reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
 
       setDashboardData({
         stats: {
-          activeMembers: membersCount || 0,
-          activeContributions: contributionsCount || 0,
-          activeProjects: projectsCount || 0,
-          upcomingEvents: eventsCount || 0,
+          activeMembers: membersCount,
+          activeContributions: contributionsCount,
+          activeProjects: projectsCount,
+          upcomingEvents: eventsCount,
         },
-        recentActivities: activities?.map(activity => ({
-          ...activity,
-          user: activity.profiles
-        })) || [],
-        upcomingEvents: events || [],
+        recentActivities: activities,
+        upcomingEvents: upcomingEvents,
         pendingContributions: contributions || [],
         financialSummary: {
           currentBalance: balance?.amount || 0,

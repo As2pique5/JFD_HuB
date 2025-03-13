@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getAuditLogs } from '../../lib/audit';
 import ReactPaginate from 'react-paginate';
 import { formatDate } from '../../lib/utils';
+import { localMemberService } from '../../services/localMemberService';
 
 interface MemberAuditLogsProps {
   memberId: string;
@@ -21,14 +21,16 @@ export default function MemberAuditLogs({ memberId }: MemberAuditLogsProps) {
         setLoading(true);
         setError(null);
         
-        const { logs, total } = await getAuditLogs(
-          { targetId: memberId },
+        const { data, error } = await localMemberService.getMemberAuditLogs(
+          memberId,
           page,
           ITEMS_PER_PAGE
         );
         
-        setLogs(logs);
-        setTotalPages(Math.ceil(total / ITEMS_PER_PAGE));
+        if (error) throw error;
+        
+        setLogs(data.logs || []);
+        setTotalPages(Math.ceil(data.total / ITEMS_PER_PAGE));
       } catch (err) {
         console.error('Error fetching audit logs:', err);
         setError('Impossible de charger l\'historique des actions');

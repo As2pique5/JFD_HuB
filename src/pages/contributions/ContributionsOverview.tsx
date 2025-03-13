@@ -4,7 +4,8 @@ import { formatCurrency } from '../../lib/utils';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import { DollarSign, Calendar, Briefcase, Users, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { localMemberService } from '../../services/localMemberService';
+import { localContributionService } from '../../services/localContributionService';
 
 // Register ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -30,18 +31,12 @@ export default function ContributionsOverview() {
         setError(null);
 
         // Fetch all members
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, name, email, role, status')
-          .order('name');
+        const { data: profiles, error: profilesError } = await localMemberService.getMembers();
 
         if (profilesError) throw profilesError;
 
         // Fetch all contributions
-        const { data: contributions, error: contribError } = await supabase
-          .from('contributions')
-          .select('*')
-          .eq('status', 'paid');
+        const { data: contributions, error: contribError } = await localContributionService.getPaidContributions();
 
         if (contribError) throw contribError;
 
@@ -54,13 +49,13 @@ export default function ContributionsOverview() {
         }
 
         // Combine member info with their contributions
-        const membersWithContributions = profiles?.map(member => ({
+        const membersWithContributions = profiles && Array.isArray(profiles) ? profiles.map((member: { id: string, name: string, email: string, role: string, status: string }) => ({
           ...member,
           totalContribution: memberContributions.get(member.id) || 0
-        })) || [];
+        })) : [];
 
         // Sort by contribution amount (highest first)
-        membersWithContributions.sort((a, b) => b.totalContribution - a.totalContribution);
+        membersWithContributions.sort((a: { totalContribution: number }, b: { totalContribution: number }) => b.totalContribution - a.totalContribution);
 
         setAllMembers(membersWithContributions);
       } catch (err) {

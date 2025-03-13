@@ -55,16 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         validRole = 'super_admin';
         console.log('💻 Admin détecté par email:', userData.email);
         
-        // Mettre à jour le profil
-        await localAuthService.updateProfile({ role: 'super_admin' });
+        // Désactivé temporairement pour éviter les erreurs 500
+        // await localAuthService.updateProfile({ role: 'super_admin' });
         userData.role = 'super_admin';
       } else if (!isAdminByEmail && userData.role === 'super_admin') {
         // Si ce n'est pas un admin par email mais qu'il a le rôle super_admin, rétrograder
         validRole = 'standard';
         console.log('⚠️ Rétrogradation d\'un utilisateur non admin:', userData.email);
         
-        // Mettre à jour le profil
-        await localAuthService.updateProfile({ role: 'standard' });
+        // Désactivé temporairement pour éviter les erreurs 500
+        // await localAuthService.updateProfile({ role: 'standard' });
         userData.role = 'standard';
       }
       

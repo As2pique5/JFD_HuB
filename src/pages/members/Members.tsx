@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Users, Search, Plus, Edit, Trash2, Filter, Eye } from 'lucide-react';
 import MemberForm from './MemberForm';
 import MemberDetail from './MemberDetail';
-import { supabase } from '../../lib/supabase';
+import { localMemberService } from '../../services/localMemberService';
 
 // Mock data for development/demo purposes
 const MOCK_MEMBERS = [
@@ -70,7 +70,7 @@ const MOCK_MEMBERS = [
 ];
 
 export default function Members() {
-  const { isAdmin, isIntermediate, user } = useAuth();
+  const { isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -86,22 +86,18 @@ export default function Members() {
         setIsLoading(true);
         setError(null);
 
-        // For demo/development, use mock data
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .order('name', { ascending: true });
+        // Utiliser le service local pour récupérer les membres
+        const { data, error } = await localMemberService.getMembers({
+          role: filterRole !== 'all' ? filterRole : undefined,
+          search: searchTerm || undefined
+        });
 
         if (error) {
-          console.error('Error fetching profiles:', error);
-          // Fallback to mock data if database error
-          setMembersData(MOCK_MEMBERS);
-          setError('Impossible de charger les données depuis la base de données. Affichage des données de démonstration.');
-          return;
+          throw error;
         }
 
-        if (profiles && profiles.length > 0) {
-          setMembersData(profiles);
+        if (data && Array.isArray(data) && data.length > 0) {
+          setMembersData(data);
         } else {
           // Use mock data if no profiles exist
           setMembersData(MOCK_MEMBERS);
@@ -117,7 +113,7 @@ export default function Members() {
     };
 
     fetchMembers();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, filterRole, searchTerm]);
 
   const filteredMembers = membersData.filter((member: any) => {
     const matchesSearch = 
@@ -153,12 +149,7 @@ export default function Members() {
 
   const handleDeleteMember = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
+      await localMemberService.deleteMember(id);
       
       setMembersData(prevMembers => prevMembers.filter(member => member.id !== id));
       setRefreshTrigger(prev => prev + 1);

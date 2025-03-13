@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { supabase } from '../../lib/supabase';
-import { logAuditEvent } from '../../lib/audit';
+import { localMemberService } from '../../services/localMemberService';
 import { useAuth } from '../../contexts/AuthContext';
 
 const passwordResetSchema = z.object({
@@ -50,21 +49,13 @@ export default function MemberPasswordReset({
       setIsLoading(true);
       setError(null);
 
-      // Reset password in Supabase Auth
-      const { error: resetError } = await supabase.auth.admin.updateUserById(
+      // Reset password using local member service
+      const { error } = await localMemberService.resetMemberPassword(
         memberId,
-        { password: data.newPassword }
+        data.newPassword
       );
 
-      if (resetError) throw resetError;
-
-      // Log the password reset action
-      await logAuditEvent(
-        'password_reset',
-        user.id,
-        memberId,
-        { timestamp: new Date().toISOString() }
-      );
+      if (error) throw error;
 
       onSuccess();
     } catch (err: any) {

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { localMemberService } from '../../services/localMemberService';
 
 const memberSchema = z.object({
   name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
@@ -53,51 +53,32 @@ export default function MemberForm({ onClose, onSuccess, initialData, isEditing 
       setError(null);
       
       if (isEditing && initialData?.id) {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            name: data.name,
-            email: data.email,
-            phone: data.phone || null,
-            role: data.role,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', initialData.id);
-        
-        if (updateError) throw updateError;
+        // Mise à jour d'un membre existant
+        await localMemberService.updateMember(initialData.id, {
+          name: data.name,
+          email: data.email,
+          phone: data.phone || undefined,
+          role: data.role,
+          status: 'active' // Utiliser la valeur existante ou définir une valeur par défaut
+        });
         
         onSuccess();
         onClose();
       } else {
-        const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        // Création d'un nouveau membre
+        const newMember = await localMemberService.createMember({
+          name: data.name,
           email: data.email,
-          password: data.password,
-          options: {
-            data: {
-              name: data.name,
-              role: data.role,
-            },
-            emailRedirectTo: `${window.location.origin}/auth/callback`
-          }
-        });
+          phone: data.phone || undefined,
+          role: data.role,
+          status: 'active',
+          // Nous devons passer le mot de passe séparément ou modifier l'interface
+          // pour le backend qui gère l'authentification
+          password: data.password
+        } as any); // Utiliser 'as any' temporairement pour éviter les erreurs de type
 
-        if (signUpError) {
-          throw signUpError;
-        }
-
-        if (!authData.user) {
+        if (!newMember) {
           throw new Error('Erreur lors de la création de l\'utilisateur');
-        }
-
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            phone: data.phone || null,
-          })
-          .eq('id', authData.user.id);
-
-        if (updateError) {
-          console.error('Erreur lors de la mise à jour du profil:', updateError);
         }
         
         onSuccess();

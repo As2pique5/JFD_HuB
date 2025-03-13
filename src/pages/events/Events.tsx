@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Plus, Search, Filter, ChevronDown, ChevronUp, MapPin, Clock, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { eventService } from '../../services/eventService';
+import { localEventService } from '../../services/localEventService';
 import EventForm from '../../components/events/EventForm';
 
 export default function Events() {
-  const { isAdmin, isIntermediate } = useAuth();
+  const { isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>(new Date().getFullYear().toString());
@@ -32,7 +32,7 @@ export default function Events() {
       setLoading(true);
       setError(null);
 
-      const { data, error } = await eventService.getEvents({
+      const { data, error } = await localEventService.getEvents({
         status: typeFilter !== 'all' ? typeFilter : undefined,
         search: searchTerm || undefined,
       });
@@ -40,7 +40,7 @@ export default function Events() {
       if (error) throw error;
 
       // Filter events by year
-      const filteredEvents = data?.filter(event => {
+      const filteredEvents = data?.filter((event: any) => {
         const eventYear = new Date(event.start_date).getFullYear();
         return eventYear === parseInt(yearFilter);
       }) || [];
@@ -66,8 +66,7 @@ export default function Events() {
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
-      const { error } = await eventService.deleteEvent(eventId);
-
+      const { error } = await localEventService.deleteEvent(eventId);
       if (error) throw error;
 
       fetchEvents();
@@ -119,6 +118,16 @@ export default function Events() {
     return (
       <div className="flex justify-center p-8">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+  
+  // Afficher un message d'erreur si nécessaire
+  if (error) {
+    return (
+      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong className="font-bold">Erreur!</strong>
+        <span className="block sm:inline"> {error}</span>
       </div>
     );
   }
