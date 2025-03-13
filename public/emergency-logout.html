@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Déconnexion d'urgence - JFD'HuB</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        .status.loading {
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #0d47a1;
+        }
+        
+        .status.success {
+            background-color: #e8f5e9;
+            border: 1px solid #4caf50;
+            color: #1b5e20;
+        }
+        
+        .status.error {
+            background-color: #ffebee;
+            border: 1px solid #f44336;
+            color: #b71c1c;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #3f51b5;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            margin-top: 20px;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .button:hover {
+            background-color: #303f9f;
+        }
+        
+        .log {
+            margin-top: 20px;
+            text-align: left;
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Déconnexion d'urgence</h1>
+        <div id="status" class="status loading">Déconnexion en cours...</div>
+        <div id="log" class="log"></div>
+        <button id="loginButton" class="button" style="display: none;">Retour à la page de connexion</button>
+    </div>
+
+    <script>
+        // Fonction pour ajouter un message au log
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // Fonction pour mettre à jour le statut
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        // Fonction principale de déconnexion
+        async function emergencyLogout() {
+            try {
+                log('🧹 Début du nettoyage du localStorage...');
+                
+                // Sauvegarder la liste des clés à supprimer
+                const keysToRemove = [];
+                
+                // Identifier toutes les clés à supprimer
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key) {
+                        keysToRemove.push(key);
+                    }
+                }
+                
+                // Supprimer toutes les clés
+                keysToRemove.forEach(key => {
+                    log(`🗑️ Suppression de la clé: ${key}`);
+                    localStorage.removeItem(key);
+                });
+                
+                // Effacer également sessionStorage par précaution
+                log('🧹 Nettoyage du sessionStorage...');
+                sessionStorage.clear();
+                
+                // Vérifier que tout est bien supprimé
+                if (localStorage.length === 0) {
+                    log('✅ Nettoyage complet terminé avec succès');
+                    updateStatus('Déconnexion forcée réussie ! Toutes les données de session ont été effacées.', 'success');
+                } else {
+                    log('⚠️ Attention: Il reste encore des éléments dans le localStorage');
+                    updateStatus('Déconnexion partielle. Certaines données n\'ont pas pu être effacées.', 'error');
+                }
+                
+                // Afficher le bouton de retour à la page de connexion
+                document.getElementById('loginButton').style.display = 'inline-block';
+                
+            } catch (error) {
+                log(`❌ Erreur lors du nettoyage: ${error.message}`);
+                updateStatus('Une erreur est survenue lors de la déconnexion forcée.', 'error');
+                document.getElementById('loginButton').style.display = 'inline-block';
+            }
+        }
+
+        // Exécuter la déconnexion dès le chargement de la page
+        window.addEventListener('DOMContentLoaded', emergencyLogout);
+        
+        // Ajouter un écouteur d'événement pour le bouton de retour
+        document.getElementById('loginButton').addEventListener('click', function() {
+            // Ajouter le paramètre force_logout pour indiquer à l'application de nettoyer les sessions
+            // et un timestamp pour éviter le cache
+            const timestamp = new Date().getTime();
+            // Rediriger vers la racine avec les paramètres
+            window.location.href = '/?force_logout=true&nocache=' + timestamp;
+        });
+    </script>
+</body>
+</html>

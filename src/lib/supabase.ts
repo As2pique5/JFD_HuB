@@ -9,9 +9,25 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
+// Vérifier si l'URL contient un paramètre de déconnexion forcée
+const urlParams = new URLSearchParams(window.location.search);
+const forceLogoutParam = urlParams.get('force_logout');
+
+// Si le paramètre est présent, nettoyer le localStorage avant l'initialisation de Supabase
+if (forceLogoutParam === 'true') {
+  console.log('🧹 Nettoyage préventif du localStorage avant initialisation de Supabase...');
+  localStorage.removeItem('jfdhub_auth');
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('sb-')) {
+      console.log(`🗑️ Suppression préventive de la clé: ${key}`);
+      localStorage.removeItem(key);
+    }
+  });
+}
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
+    persistSession: false, // Désactiver la persistance de session par défaut
     autoRefreshToken: true,
     detectSessionInUrl: false,
     storage: localStorage,
@@ -29,6 +45,37 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
   },
 });
+
+// Fonction pour forcer la déconnexion complète en effaçant toutes les données de session
+export const forceCompleteSignOut = async () => {
+  console.log('🔥 Déconnexion forcée de Supabase en cours...');
+  
+  try {
+    // 1. D'abord, essayer de se déconnecter normalement via l'API
+    await supabase.auth.signOut();
+    
+    // 2. Effacer spécifiquement la clé de session Supabase
+    localStorage.removeItem('jfdhub_auth');
+    
+    // 3. Effacer toutes les clés Supabase par sécurité
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-')) {
+        console.log('🗑️ Suppression de la clé Supabase:', key);
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // 4. Effacer les données spécifiques à l'application
+    localStorage.removeItem('jfdhub_user');
+    localStorage.removeItem('jfdhub_last_sync');
+    
+    console.log('✅ Déconnexion forcée réussie');
+    return true;
+  } catch (error) {
+    console.error('❌ Erreur lors de la déconnexion forcée:', error);
+    return false;
+  }
+};
 
 // Add error handling and connection status check
 export const checkSupabaseConnection = async () => {

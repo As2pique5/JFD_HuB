@@ -1,6 +1,13 @@
 # Historique du Projet JFD'HuB
 
 ## 13 Mars 2025
+
+- Résolution des problèmes de persistance de session :
+  - Désactivation de la persistance de session par défaut dans la configuration Supabase (`persistSession: false`)
+  - Implémentation d'un mécanisme de détection du paramètre `force_logout` dans l'URL pour nettoyer les sessions
+  - Création d'une page HTML statique (`emergency-logout.html`) pour la déconnexion d'urgence
+  - Nettoyage préventif du localStorage avant l'initialisation de Supabase
+  - Journalisation détaillée des actions de nettoyage pour faciliter le débogage
 - Création de nouveaux services locaux pour remplacer les services Supabase :
   - `localMemberService.ts` : Gestion des membres et de leurs rôles
   - `localFinancialService.ts` : Gestion des transactions financières et du solde bancaire

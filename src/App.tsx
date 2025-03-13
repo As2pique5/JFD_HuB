@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import { checkSupabaseConnection } from './lib/supabase';
+import { checkSupabaseConnection, forceCompleteSignOut } from './lib/supabase';
 import Layout from './components/layout/Layout';
 import Login from './pages/auth/Login';
+import ForceLogout from './pages/auth/ForceLogout';
 import Dashboard from './pages/dashboard/Dashboard';
 import Members from './pages/members/Members';
 import Contributions from './pages/contributions/Contributions';
@@ -23,6 +24,20 @@ function App() {
   const [connectionError, setConnectionError] = useState(false);
 
   useEffect(() => {
+    // Vérifier si l'URL contient un paramètre de déconnexion forcée
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceLogoutParam = urlParams.get('force_logout');
+    
+    // Si le paramètre est présent, nettoyer l'URL pour éviter des rechargements indésirables
+    if (forceLogoutParam === 'true') {
+      console.log('🔥 Déconnexion forcée détectée dans l\'URL');
+      // Supprimer le paramètre de l'URL sans recharger la page
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
+
+  useEffect(() => {
     const checkConnection = async () => {
       const isConnected = await checkSupabaseConnection();
       setConnectionError(!isConnected);
@@ -38,6 +53,17 @@ function App() {
     return () => clearInterval(checkInterval);
   }, []);
 
+  // Fonction pour forcer la déconnexion complète
+  const forceLogout = async () => {
+    console.log('🔥 Déconnexion forcée en cours...');
+    
+    // Utiliser la fonction spécialisée pour forcer la déconnexion
+    await forceCompleteSignOut();
+    
+    // Recharger la page pour forcer une nouvelle initialisation
+    window.location.href = '/login';
+  };
+
   // Show loading screen while auth is initializing
   if (loading) {
     return (
@@ -45,6 +71,14 @@ function App() {
         <div className="flex flex-col items-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="mt-4 text-lg font-medium text-foreground">Chargement de JFD'HuB...</p>
+          
+          {/* Bouton de déconnexion d'urgence */}
+          <button 
+            onClick={forceLogout}
+            className="mt-8 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Déconnexion d'urgence
+          </button>
         </div>
       </div>
     );
@@ -74,6 +108,7 @@ function App() {
     <ThemeProvider>
       <Routes>
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+        <Route path="/force-logout" element={<ForceLogout />} />
         
         <Route element={user ? <Layout /> : <Navigate to="/login" replace />}>
           <Route path="/" element={<Dashboard />} />
